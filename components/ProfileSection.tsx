@@ -30,6 +30,7 @@ import {
   HelpCircle,
   FileText,
   Lock,
+  Trash2,
 } from 'lucide-react-native';
 // Try to import Expo Router - will be undefined if not using Expo Router
 let useRouter: any;
@@ -375,6 +376,20 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, onLogout, onWorkerS
                   <FileText size={20} color="#9333EA" />
                 </View>
                 <Text style={styles.menuItemText}>Terms & Conditions</Text>
+              </View>
+              <ChevronRight size={20} color={colors.textLight} />
+            </TouchableOpacity>
+
+            {/* Delete Account */}
+            <TouchableOpacity
+              style={[styles.menuItem, styles.menuItemBorder]}
+              onPress={openWebsite}
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: '#FEE2E2' }]}>
+                  <Trash2 size={20} color="#DC2626" />
+                </View>
+                <Text style={styles.menuItemText}>Delete Account</Text>
               </View>
               <ChevronRight size={20} color={colors.textLight} />
             </TouchableOpacity>

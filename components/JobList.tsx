@@ -151,6 +151,9 @@ export const JobList: React.FC<JobListProps> = ({ jobs: initialJobs, onJobPress,
 
   const renderItem = ({ item }: { item: Job }) => (
     <TouchableOpacity key={item.id} style={styles.jobItem} onPress={() => handlePress(item)}>
+      <View style={styles.jobTag}>
+        <Text style={styles.jobTagText}>Job Posting</Text>
+      </View>
       <View style={[styles.jobItemIcon, { backgroundColor: '#E6F6FF' }]}>
         <Briefcase size={20} color="#0EA5E9" />
       </View>
@@ -215,15 +218,32 @@ export const JobList: React.FC<JobListProps> = ({ jobs: initialJobs, onJobPress,
 
 const styles = StyleSheet.create({
   jobsContainer: {
-    paddingHorizontal: 20,
+    flex: 1,
   },
   jobItem: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'flex-start',
     backgroundColor: '#F3F4F6',
     padding: 16,
     borderRadius: 16,
     marginBottom: 12,
+    marginHorizontal: 20,
+  },
+  jobTag: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#FCD34D',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    zIndex: 1,
+  },
+  jobTagText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#78350F',
   },
   jobItemIcon: {
     width: 56,

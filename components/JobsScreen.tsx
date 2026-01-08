@@ -246,6 +246,13 @@ const JobsScreen = ({ navigation }: any) => {
           <Text style={styles.searchHint}>Type {MIN_SEARCH_LENGTH}+ characters to search</Text>
         )}
 
+        {/* Testing Phase Notice */}
+        <View style={styles.noticeContainer}>
+          <Text style={styles.noticeText}>
+            This application is currently in closed testing phase. Some features such as worker calling and booking are under development. Displayed worker contact details are placeholder data for testing purposes. Full functionality will be enabled in upcoming updates.
+          </Text>
+        </View>
+
         {/* Filters */}
         <View style={styles.filtersRow}>
           <TouchableOpacity style={styles.filterButton} onPress={() => setShowCategoryModal(true)}>
@@ -370,6 +377,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6B7280',
   },
+  noticeContainer: {
+    backgroundColor: '#FEF3C7',
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#F59E0B',
+  },
+  noticeText: {
+    fontSize: 12,
+    color: '#78350F',
+    lineHeight: 18,
+  },
   filtersRow: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -410,7 +432,6 @@ const styles = StyleSheet.create({
   },
   jobListings: {
     flex: 1,
-    paddingHorizontal: 20,
   },
   jobListingsContent: {
     paddingBottom: 20,

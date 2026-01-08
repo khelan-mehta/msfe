@@ -84,7 +84,7 @@ interface Worker {
   profileImage: any;
 }
 
-const HomeScreen = () => {
+const HomeScreen = ({ navigation }: any) => {
   const [activeTab, setActiveTab] = useState<'recent' | 'personalized'>('personalized');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -365,7 +365,7 @@ const HomeScreen = () => {
         {/* Header Row */}
         <View style={styles.featuredHeaderRow}>
           <Text style={styles.sectionTitle}>Featured Services</Text>
-          <TouchableOpacity onPress={() => console.log('View all featured')}>
+          <TouchableOpacity onPress={() => navigation.navigate('Services')}>
             <Text style={styles.viewAllText}>See all</Text>
           </TouchableOpacity>
         </View>
@@ -469,7 +469,7 @@ const HomeScreen = () => {
 
               <View style={styles.featuredHeaderRow}>
                 <Text style={styles.sectionTitle}>Recent Jobs</Text>
-                <TouchableOpacity onPress={() => console.log('View all featured')}>
+                <TouchableOpacity onPress={() => navigation.navigate('Jobs')}>
                   <Text style={styles.viewAllText}>See all</Text>
                 </TouchableOpacity>
               </View>

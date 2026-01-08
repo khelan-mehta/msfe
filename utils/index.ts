@@ -183,18 +183,18 @@ export const determineJobFlowState = (profile: UserProfile): JobFlowState => {
            - null/pending → kyc_required
   */
 
-  // Step 1: Check if has job seeker profile (accept worker profile as fallback)
-  if (profile.job_seeker_profile_id || profile.worker_profile_id) {
-    // Accept truthy values (true, 1, 'true') for backward compatibility with different backends
-    if (profile.job_seeker_is_verified || profile.worker_is_verified) {
+  // Step 1: Check if has job seeker profile (no fallback to worker profile)
+  if (profile.job_seeker_profile_id) {
+    // Check job_seeker_is_verified status
+    if (profile.job_seeker_is_verified) {
       return 'job_profile_verified';
     } else {
       return 'job_profile_pending';
     }
   }
 
-  // Step 2: No job seeker profile - check subscription (accept generic subscription id as fallback)
-  if (profile.job_seeker_subscription_id || profile.subscription_id) {
+  // Step 2: No job seeker profile - check subscription (no fallback to worker subscription)
+  if (profile.job_seeker_subscription_id) {
     return 'job_profile_required';
   }
 

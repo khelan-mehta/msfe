@@ -112,7 +112,7 @@ export const WorkersModal: React.FC<WorkersModalProps> = ({
 
           {/* Workers List */}
           <ScrollView style={styles.workersList} showsVerticalScrollIndicator={false}>
-            {workers?.length === 0 ? (
+            {!workers || workers.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyIcon}>👷</Text>
                 <Text style={styles.emptyText}>No workers found</Text>
@@ -121,7 +121,7 @@ export const WorkersModal: React.FC<WorkersModalProps> = ({
                 </Text>
               </View>
             ) : (
-              workers.map((worker: any) => (
+              Array.isArray(workers) && workers.map((worker: any) => (
                 <View key={worker.id} style={styles.workerCard}>
                   {/* Subscription Badge */}
                   <View style={[styles.planBadge, getPlanBadgeStyle(worker.subscriptionPlan)]}>

@@ -149,18 +149,7 @@ export const useProfile = (onLogout?: () => void): UseProfileReturn => {
       // Received profile from backend
       let profile: any = result.data;
 
-      // Normalize fields to support different backend naming conventions
-      if (!profile.job_seeker_subscription_id && profile.subscription_id) {
-        profile.job_seeker_subscription_id = profile.subscription_id;
-      }
-
-      if (!profile.job_seeker_profile_id && profile.worker_profile_id) {
-        profile.job_seeker_profile_id = profile.worker_profile_id;
-      }
-
-      if (typeof profile.job_seeker_is_verified === 'undefined' && typeof profile.worker_is_verified !== 'undefined') {
-        profile.job_seeker_is_verified = profile.worker_is_verified;
-      }
+      // Worker and job seeker profiles are now independent - no normalization needed
 
       setUserProfile(profile as UserProfile);
 
