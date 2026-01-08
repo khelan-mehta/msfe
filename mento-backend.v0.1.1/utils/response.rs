@@ -9,7 +9,9 @@ use rocket_okapi::response::OpenApiResponderInner;
 use rocket_okapi::r#gen::OpenApiGenerator;
 use rocket_okapi::okapi::openapi3::{MediaType, Response as OpenApiResponse, Responses};
 
+/// -----------------------------
 /// Generic API response
+/// -----------------------------
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ApiResponse<T> {
     pub success: bool,
@@ -44,10 +46,12 @@ impl<T> ApiResponse<T> {
     }
 }
 
-/// Error wrapper used in routes
+/// -----------------------------
+/// API Error
+/// -----------------------------
 #[derive(Debug, Serialize, JsonSchema)]
 pub struct ApiError {
-    #[schemars(skip)] // skip non-serializable type in OpenAPI schema
+    #[schemars(skip)]
     #[serde(skip_serializing)]
     pub status: Status,
     pub message: String,
@@ -75,6 +79,13 @@ impl ApiError {
         }
     }
 
+    pub fn too_many_requests(message: impl Into<String>) -> Self {
+        ApiError {
+            status: Status::TooManyRequests, // ✅ 429
+            message: message.into(),
+        }
+    }
+
     pub fn internal_error(message: impl Into<String>) -> Self {
         ApiError {
             status: Status::InternalServerError,
@@ -83,6 +94,9 @@ impl ApiError {
     }
 }
 
+/// -----------------------------
+/// Rocket Responder
+/// -----------------------------
 impl<'r> Responder<'r, 'static> for ApiError {
     fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static> {
         let body = serde_json::to_string(&ApiResponse::<()>::error(self.message))
@@ -96,10 +110,14 @@ impl<'r> Responder<'r, 'static> for ApiError {
     }
 }
 
+/// -----------------------------
+/// OpenAPI integration
+/// -----------------------------
 impl OpenApiResponderInner for ApiError {
     fn responses(generator: &mut OpenApiGenerator) -> rocket_okapi::Result<Responses> {
-        let schema = generator.json_schema::<ApiError>();
-        let mut content = Map::new(); // ✅ FIXED
+        let schema = generator.json_schema::<ApiResponse<()>>();
+
+        let mut content = Map::new();
         content.insert(
             "application/json".to_owned(),
             MediaType {
@@ -109,14 +127,23 @@ impl OpenApiResponderInner for ApiError {
         );
 
         let mut responses = Responses::default();
-        responses.responses.insert(
-            "400".to_string(),
-            rocket_okapi::okapi::openapi3::RefOr::Object(OpenApiResponse {
-                description: "API error response".to_string(),
-                content,
-                ..Default::default()
-            }),
-        );
+
+        for (code, description) in [
+            ("400", "Bad request"),
+            ("401", "Unauthorized"),
+            ("404", "Not found"),
+            ("429", "Too many requests"),
+            ("500", "Internal server error"),
+        ] {
+            responses.responses.insert(
+                code.to_string(),
+                rocket_okapi::okapi::openapi3::RefOr::Object(OpenApiResponse {
+                    description: description.to_string(),
+                    content: content.clone(),
+                    ..Default::default()
+                }),
+            );
+        }
 
         Ok(responses)
     }

@@ -19,18 +19,40 @@ pub struct FcmToken {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct WorkerSubscriptionInfo {
+    pub subscription_id: Option<ObjectId>,
+    pub plan_name: Option<String>,
+    pub expires_at: Option<DateTime>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct User {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
+
     pub mobile: String,
     pub email: Option<String>,
     pub name: Option<String>,
     pub profile_photo: Option<String>,
     pub city: Option<String>,
     pub pincode: Option<String>,
+
     pub kyc_status: KycStatus,
     pub is_active: bool,
     pub fcm_token: Option<FcmToken>,
+
+    /* ---------------- WORKER SUBSCRIPTION (FLAT, OPTIONAL) ---------------- */
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subscription_id: Option<ObjectId>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subscription_plan: Option<String>, // "silver" | "gold"
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subscription_expires_at: Option<DateTime>,
+
+    /* ---------------------------------------------------------------------- */
+
     pub last_login_at: DateTime,
     pub created_at: DateTime,
     pub updated_at: DateTime,

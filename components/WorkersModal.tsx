@@ -72,7 +72,7 @@ export const WorkersModal: React.FC<WorkersModalProps> = ({
   };
 
   const getPlanBadgeStyle = (plan: string) => {
-    switch (plan.toLowerCase()) {
+    switch (plan?.toLowerCase()) {
       case 'gold':
         return styles.goldBadge;
       case 'silver':
@@ -83,7 +83,7 @@ export const WorkersModal: React.FC<WorkersModalProps> = ({
   };
 
   const getPlanBadgeText = (plan: string) => {
-    switch (plan.toLowerCase()) {
+    switch (plan?.toLowerCase()) {
       case 'gold':
         return '👑 Gold';
       case 'silver':
@@ -101,7 +101,7 @@ export const WorkersModal: React.FC<WorkersModalProps> = ({
           <View style={styles.header}>
             <View>
               <Text style={styles.headerTitle}>
-                {workers.length} Worker{workers.length !== 1 ? 's' : ''} Available
+                {workers?.length} Worker{workers?.length !== 1 ? 's' : ''} Available
               </Text>
               <Text style={styles.headerSubtitle}>{serviceName}</Text>
             </View>
@@ -112,7 +112,7 @@ export const WorkersModal: React.FC<WorkersModalProps> = ({
 
           {/* Workers List */}
           <ScrollView style={styles.workersList} showsVerticalScrollIndicator={false}>
-            {workers.length === 0 ? (
+            {workers?.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyIcon}>👷</Text>
                 <Text style={styles.emptyText}>No workers found</Text>
@@ -173,12 +173,12 @@ export const WorkersModal: React.FC<WorkersModalProps> = ({
 
                   {/* Specializations */}
                   <View style={styles.specializationContainer}>
-                    {worker.specialization.slice(0, 3).map((spec: any, index: any) => (
+                    {worker?.specialization.slice(0, 3).map((spec: any, index: any) => (
                       <View key={index} style={styles.specializationTag}>
                         <Text style={styles.specializationText}>{spec}</Text>
                       </View>
                     ))}
-                    {worker.specialization.length > 3 && (
+                    {worker?.specialization.length > 3 && (
                       <View style={styles.specializationTag}>
                         <Text style={styles.specializationText}>
                           +{worker.specialization.length - 3} more

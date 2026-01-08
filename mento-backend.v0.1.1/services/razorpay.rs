@@ -12,14 +12,17 @@ impl RazorpayService {
         std::env::var("RAZORPAY_KEY_SECRET").unwrap()
     }
 
-    pub async fn create_order(amount: i64) -> Result<serde_json::Value, String> {
+    pub async fn create_order(amount: f64) -> Result<serde_json::Value, String> {
         let client = Client::new();
+
+        // Convert rupees (possibly fractional) to paise and round to nearest integer
+        let amount_paise = (amount * 100.0).round() as i64;
 
         let res = client
             .post("https://api.razorpay.com/v1/orders")
             .basic_auth(Self::key_id(), Some(Self::key_secret()))
             .json(&json!({
-                "amount": amount * 100,
+                "amount": amount_paise,
                 "currency": "INR",
                 "payment_capture": 1
             }))

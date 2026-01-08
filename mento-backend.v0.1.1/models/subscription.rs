@@ -12,6 +12,7 @@ pub enum SubscriptionType {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum SubscriptionStatus {
+    Pending,
     Active,
     Expired,
     Cancelled,
