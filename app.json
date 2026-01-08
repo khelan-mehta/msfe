@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "Mento Service",
+    "slug": "mento-service",
+    "version": "1.0.0",
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "experiments": {
+      "tsconfigPaths": true
+    },
+    "plugins": [],
+    "orientation": "portrait",
+    "icon": "./assets/logo_resized.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/logo_resized.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo_resized.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.mento.services"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "7d356e57-b046-4691-b6f8-b225439cdbf6"
+      },
+      "API_BASE_URL": "https://api.mentoservices.com/api/v1"
+    }
+  }
+}
