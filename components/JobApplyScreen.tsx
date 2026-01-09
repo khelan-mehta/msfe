@@ -1,17 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
-import {
-  Briefcase,
-  MapPin,
-} from 'lucide-react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Briefcase, MapPin } from 'lucide-react-native';
 
-import {styles, colors} from "components/styles/JobApplyStyles";
+import { styles, colors } from 'components/styles/JobApplyStyles';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { API_BASE_URL } from '../constants';
 import { buildUrl } from '../utils/api-config';
@@ -40,11 +31,13 @@ export default function JobDetailsScreen() {
 
   const markJobAppliedLocally = async (id: string) => {
     try {
-      const stored = await import('../utils/storage').then(m => m.getItem(APPLIED_JOBS_KEY));
-      const parsed = stored ? JSON.parse(stored) as string[] : [];
+      const stored = await import('../utils/storage').then((m) => m.getItem(APPLIED_JOBS_KEY));
+      const parsed = stored ? (JSON.parse(stored) as string[]) : [];
       if (!parsed.includes(id)) {
         parsed.push(id);
-        await import('../utils/storage').then(m => m.setItem(APPLIED_JOBS_KEY, JSON.stringify(parsed)));
+        await import('../utils/storage').then((m) =>
+          m.setItem(APPLIED_JOBS_KEY, JSON.stringify(parsed))
+        );
       }
     } catch (err) {
       console.error('Error storing applied job locally:', err);
@@ -53,8 +46,8 @@ export default function JobDetailsScreen() {
 
   const checkLocalApplied = async (id?: string) => {
     try {
-      const stored = await import('../utils/storage').then(m => m.getItem(APPLIED_JOBS_KEY));
-      const parsed = stored ? JSON.parse(stored) as string[] : [];
+      const stored = await import('../utils/storage').then((m) => m.getItem(APPLIED_JOBS_KEY));
+      const parsed = stored ? (JSON.parse(stored) as string[]) : [];
       if (id) setApplied(parsed.includes(id));
       else setApplied(false);
     } catch (err) {
@@ -80,7 +73,11 @@ export default function JobDetailsScreen() {
         setJob(data);
 
         // Determine if user already applied (server-side list)
-        const currentUserId = (userProfile as any)?.id || (userProfile as any)?._id || (userProfile as any)?.user_id || null;
+        const currentUserId =
+          (userProfile as any)?.id ||
+          (userProfile as any)?._id ||
+          (userProfile as any)?.user_id ||
+          null;
         if (currentUserId && data?.applications && Array.isArray(data.applications)) {
           setApplied(data.applications.includes(currentUserId));
         }
@@ -101,13 +98,20 @@ export default function JobDetailsScreen() {
   const handleApply = async () => {
     if (!jobId || applying) return;
     if (!canApply) {
-      toast.showWarning('Action required', 'Please complete your Job seeker profile before applying');
+      toast.showWarning(
+        'Action required',
+        'Please complete your Job seeker profile before applying'
+      );
       return;
     }
 
     try {
       setApplying(true);
-      const res = await authorizedFetch(`${API_BASE_URL}/job/${jobId}/apply`, { method: 'POST' }, handleUnauthorized);
+      const res = await authorizedFetch(
+        `${API_BASE_URL}/job/${jobId}/apply`,
+        { method: 'POST' },
+        handleUnauthorized
+      );
       if (!res.ok) {
         const json = await res.json().catch(() => null);
         throw new Error(json?.message || 'Failed to apply');
@@ -117,7 +121,7 @@ export default function JobDetailsScreen() {
       if (!json.success) throw new Error(json.message || 'Failed to apply');
 
       setApplied(true);
-        await markJobAppliedLocally(jobId);
+      await markJobAppliedLocally(jobId);
     } catch (err: any) {
       console.error('Error applying to job:', err);
       toast.showWarning('Error', err.message || 'Failed to apply');
@@ -126,22 +130,30 @@ export default function JobDetailsScreen() {
     }
   };
 
-  if (loading) return (
-    <View style={[styles.container, {justifyContent: 'center', alignItems: 'center'}]}>
-      <ActivityIndicator size="large" color={colors.primary} />
-    </View>
-  );
+  // Helper to format salary
+  const formatSalary = (amount: number | null | undefined) => {
+    if (amount == null) return '-';
+    return `₹${amount.toLocaleString('en-IN')}`;
+  };
 
-  if (!job) return (
-    <View style={[styles.container, {justifyContent: 'center', alignItems: 'center'}]}>
-      <Text style={{ color: '#6B7280' }}>Job not found.</Text>
-    </View>
-  );
+  if (loading)
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+
+  if (!job)
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: '#6B7280' }}>Job not found.</Text>
+      </View>
+    );
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Heading */}
-      <Text style={styles.heading}>{job.title || 'Job Details'}</Text>
+      <Text style={styles.heading}>{'Job Details'}</Text>
 
       {/* Job Summary Card */}
       <View style={styles.summaryCard}>
@@ -151,18 +163,29 @@ export default function JobDetailsScreen() {
 
         <View style={styles.summaryContent}>
           <Text style={styles.jobTitle}>{job.title}</Text>
-          <Text style={styles.company}>{job.company_name || job.posted_by || ''}</Text>
+          <Text style={styles.company}>{job.company_name || ''}</Text>
 
           <View style={styles.metaRow}>
-            <Text style={styles.metaText}>{job.category || job.job_type || ''}</Text>
-            <Text style={styles.dot}>•</Text>
-            <Text style={styles.metaText}>{job.salary_min ? `₹${job.salary_min}` : 'Salary not specified'}</Text>
+            <Text style={styles.metaText}>
+              {job.job_role || job.category || job.job_type || ''}
+            </Text>
+            {(job.salary_min || job.salary_max) && (
+              <>
+                <Text style={styles.dot}>•</Text>
+                <Text style={styles.metaText}>
+                  {formatSalary(job.salary_min)} - {formatSalary(job.salary_max)}
+                </Text>
+              </>
+            )}
           </View>
 
           {job.location && (
             <View style={styles.locationRow}>
               <MapPin size={14} color={colors.textLight} />
-              <Text style={styles.location}>{job.location}{job.city ? `, ${job.city}` : ''}</Text>
+              <Text style={styles.location}>
+                {job.location}
+                {job.city ? `, ${job.city}` : ''}
+              </Text>
             </View>
           )}
         </View>
@@ -170,16 +193,59 @@ export default function JobDetailsScreen() {
 
       {/* Details Section */}
       <View style={styles.detailCard}>
-        <Text style={styles.sectionTitle}>Job Description</Text>
-        <Text style={styles.sectionText}>{job.description || 'No description provided.'}</Text>
-
-        {job.required_skills && (
+        {/* Job Role */}
+        {job.job_role && (
           <>
-            <Text style={styles.sectionTitle}>Eligibility</Text>
-            <Text style={styles.sectionText}>{(job.required_skills || []).join(', ')}</Text>
+            <Text style={styles.sectionTitle}>Job Role</Text>
+            <Text style={styles.sectionText}>{job.job_role}</Text>
           </>
         )}
 
+        {/* Description */}
+        {job.description && (
+          <>
+            <Text style={styles.sectionTitle}>Job Description</Text>
+            <Text style={styles.sectionText}>{job.description}</Text>
+          </>
+        )}
+
+        {/* Salary Range */}
+        {(job.salary_min || job.salary_max) && (
+          <>
+            <Text style={styles.sectionTitle}>Salary Range</Text>
+            <Text style={styles.sectionText}>
+              {formatSalary(job.salary_min)} - {formatSalary(job.salary_max)}
+            </Text>
+          </>
+        )}
+
+        {/* Eligibility */}
+        {job.eligibility && Array.isArray(job.eligibility) && job.eligibility.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Eligibility</Text>
+            <Text style={styles.sectionText}>{job.eligibility.join(', ')}</Text>
+          </>
+        )}
+
+        {/* Requirements */}
+        {job.requirements && Array.isArray(job.requirements) && job.requirements.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Requirements</Text>
+            <Text style={styles.sectionText}>{job.requirements.join(', ')}</Text>
+          </>
+        )}
+
+        {/* Required Skills (fallback for older API format) */}
+        {job.required_skills &&
+          Array.isArray(job.required_skills) &&
+          job.required_skills.length > 0 && (
+            <>
+              <Text style={styles.sectionTitle}>Required Skills</Text>
+              <Text style={styles.sectionText}>{job.required_skills.join(', ')}</Text>
+            </>
+          )}
+
+        {/* Company Brief */}
         {job.company_brief && (
           <>
             <Text style={styles.sectionTitle}>Company Brief</Text>
@@ -187,13 +253,14 @@ export default function JobDetailsScreen() {
           </>
         )}
 
-        {job.hr_name && (
+        {/* HR Details */}
+        {(job.hr_name || job.hr_email || job.hr_contact) && (
           <>
             <Text style={styles.sectionTitle}>HR Details</Text>
             <Text style={styles.sectionText}>
-              HR Name: {job.hr_name}{'\n'}
-              Email: {job.hr_email || '-'}{'\n'}
-              Contact: {job.hr_contact || '-'}
+              {job.hr_name && `HR Name: ${job.hr_name}\n`}
+              {job.hr_email && `Email: ${job.hr_email}\n`}
+              {job.hr_contact && `Contact: ${job.hr_contact}`}
             </Text>
           </>
         )}
@@ -203,13 +270,13 @@ export default function JobDetailsScreen() {
       <TouchableOpacity
         style={[styles.applyButton, (!canApply || applied) && { backgroundColor: '#CBD5E1' }]}
         disabled={!canApply || applying || applied}
-        onPress={handleApply}
-      >
-        <Text style={styles.applyText}>{applied ? 'Applied' : (applying ? 'Applying...' : 'Apply Now')}</Text>
+        onPress={handleApply}>
+        <Text style={styles.applyText}>
+          {applied ? 'Applied' : applying ? 'Applying...' : 'Apply Now'}
+        </Text>
       </TouchableOpacity>
 
       <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
-

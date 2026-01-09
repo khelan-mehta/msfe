@@ -40,6 +40,7 @@ interface Service {
 }
 
 interface WorkerFromAPI {
+  phone: any;
   _id?: { $oid: string };
   user_id: { $oid: string };
   categories: string[];
@@ -399,7 +400,7 @@ const ServicesScreen = () => {
           name: `${worker.description.split(' ')[0] || 'Worker'}`,
           rating: worker.rating || 0,
           reviewCount: worker.total_reviews || 0,
-          phone: '+91 98765 43210',
+          phone: worker.phone,
           experience: `${worker.experience_years} years experience`,
           profileImage: require('../assets/hero3.jpg'),
           specialization: worker.subcategories || [],
