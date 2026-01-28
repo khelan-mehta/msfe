@@ -1,5 +1,5 @@
 // JobsScreen.tsx (Expo + React Native)
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Modal,
+  RefreshControl,
 } from 'react-native';
 import {
   Search,
@@ -36,9 +37,23 @@ const JobsScreen = ({ navigation }: any) => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const toast = useToast();
   const shortQueryToastShown = useRef(false);
   const [searchHintSuppressed, setSearchHintSuppressed] = useState<boolean>(false);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    // Reset filters and refresh data
+    setSelectedCategory('All');
+    setSelectedLocation('All');
+    setSelectedDate('All');
+    setSearchQuery('');
+    setDebouncedQuery('');
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1500);
+  }, []);
 
   // Load persisted preference for showing the search hint (once across restarts)
   React.useEffect(() => {
@@ -225,7 +240,17 @@ const JobsScreen = ({ navigation }: any) => {
 
   return (
     <Container>
-      <View style={styles.container}>
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#0EA5E9']}
+            tintColor="#0EA5E9"
+          />
+        }>
         {/* Header */}
         <Header name='Jobs Listings'/>
 
@@ -304,6 +329,8 @@ const JobsScreen = ({ navigation }: any) => {
           />
         </View>
 
+        <View style={{ height: 100 }} />
+      </ScrollView>
 
         {/* Filter Modals */}
         <FilterModal
@@ -330,7 +357,6 @@ const JobsScreen = ({ navigation }: any) => {
           selected={selectedDate}
           onSelect={setSelectedDate}
         />
-      </View>
     </Container>
   );
 };
@@ -338,7 +364,7 @@ const JobsScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F8FAFC',
   },
   header: {
     flexDirection: 'row',

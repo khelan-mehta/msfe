@@ -1,5 +1,5 @@
 // HomeScreen.tsx
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   ScrollView,
@@ -8,9 +8,9 @@ import {
   StyleSheet,
   Alert,
   Image,
-  ImageBackground,
   Dimensions,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import {
   Droplet,
@@ -96,6 +96,15 @@ const HomeScreen = ({ navigation }: any) => {
   const [selectedPackage, setSelectedPackage] = useState<PackageType | null>(null);
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [availableWorkers, setAvailableWorkers] = useState<Worker[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    // Simulate data refresh
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1500);
+  }, []);
 
   const allServices = Object.values(serviceCategories).flat();
   const allCategories = Object.keys(serviceCategories);
@@ -350,7 +359,7 @@ const HomeScreen = ({ navigation }: any) => {
 
   /* -----------------------
      FeaturedGrid component
-     Minimal, professional cards (2x2)
+     Clean, minimal cards (2x2)
      ----------------------- */
   const FeaturedGrid: React.FC = () => {
     const cardMargin = 12;
@@ -375,53 +384,45 @@ const HomeScreen = ({ navigation }: any) => {
           {featuredServicesData.map((item) => (
             <TouchableOpacity
               key={item.id}
-              style={[styles.featuredCardRevamp, { width: cardWidth }]}
-              activeOpacity={0.9}
+              style={[styles.featuredCardClean, { width: cardWidth }]}
+              activeOpacity={0.7}
               onPress={() => {
                 setSelectedCategory(item.category);
                 setShowServiceModal(true);
               }}>
-              <ImageBackground
-                source={item.image}
-                style={styles.cardImageRevamp}
-                imageStyle={styles.cardImageStyleRevamp}>
-                {/* Dark overlay + soft gradient */}
-                <View style={styles.cardOverlayRevamp} />
-
-                {/* Price Chip */}
-                <View style={styles.priceChipRevamp}>
-                  <Text style={styles.priceChipText}>{item.price}</Text>
+              {/* Image Container */}
+              <View style={styles.cardImageContainer}>
+                <Image
+                  source={item.image}
+                  style={styles.cardImageClean}
+                  resizeMode="cover"
+                />
+                {/* Price Badge */}
+                <View style={styles.priceBadge}>
+                  <Text style={styles.priceBadgeText}>{item.price}</Text>
                 </View>
+              </View>
 
-                {/* Content */}
-                <View style={styles.cardBodyRevamp}>
-                  <Text numberOfLines={1} style={styles.cardTitleRevamp}>
-                    {item.name}
-                  </Text>
+              {/* Content */}
+              <View style={styles.cardContent}>
+                <Text numberOfLines={1} style={styles.cardTitleClean}>
+                  {item.name}
+                </Text>
+                <Text numberOfLines={1} style={styles.cardSubtitleClean}>
+                  {item.subtitle}
+                </Text>
 
-                  <Text numberOfLines={1} style={styles.cardSubtitleRevamp}>
-                    {item.subtitle}
-                  </Text>
-
-                  {/* Bottom Action Bar */}
-                  <TouchableOpacity
-                    style={styles.actionBarRevamp}
-                    onPress={() => {
-                      setSelectedCategory(item.category);
-                      setShowServiceModal(true);
-                    }}
-                    activeOpacity={0.85}>
-                    <Text style={styles.actionBarText}>Call Now</Text>
-
-                    <View style={styles.actionArrowCircle}>
-                      <Phone size={18} color={theme.colors.background} />
-                    </View>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Shine Overlay */}
-                <View style={styles.shineOverlayRevamp} />
-              </ImageBackground>
+                {/* Book Button */}
+                <TouchableOpacity
+                  style={styles.bookButtonClean}
+                  onPress={() => {
+                    setSelectedCategory(item.category);
+                    setShowServiceModal(true);
+                  }}
+                  activeOpacity={0.8}>
+                  <Text style={styles.bookButtonText}>Book Now</Text>
+                </TouchableOpacity>
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -433,18 +434,31 @@ const HomeScreen = ({ navigation }: any) => {
     <Container>
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+          />
+        }>
         {/* Header */}
         <Header onNotificationPress={handleNotificationPress} />
 
         {/* Hero Banner */}
         {!isSearchFocused && <HeroImages />}
 
-        {/* Offers Button */}
+        {/* Offers Banner */}
         {!isSearchFocused && (
-          <TouchableOpacity style={styles.offersButton} onPress={handleOffersPress}>
-            <Text style={styles.offersButtonText}>Offers 20% Off</Text>
-            <Text style={styles.offersButtonSubtext}>Book Advance</Text>
+          <TouchableOpacity style={styles.offersBanner} onPress={handleOffersPress}>
+            <View style={styles.offersContent}>
+              <Text style={styles.offersTitle}>20% Off</Text>
+              <Text style={styles.offersSubtitle}>Book in Advance</Text>
+            </View>
+            <View style={styles.offersArrow}>
+              <Text style={styles.offersArrowText}>→</Text>
+            </View>
           </TouchableOpacity>
         )}
 
@@ -478,15 +492,14 @@ const HomeScreen = ({ navigation }: any) => {
 
             {/* Updates Section */}
             <View style={styles.featuredWrapper}>
-
               <View style={styles.featuredHeaderRow}>
                 <Text style={styles.sectionTitle}>Updates</Text>
               </View>
               <TouchableOpacity
                 style={styles.updateItem}
                 onPress={() => console.log('Update pressed')}>
-                <View style={[styles.updateIcon, { backgroundColor: '#B3E5FC' }]}>
-                  <Gift size={24} color="#0EA5E9" />
+                <View style={styles.updateIcon}>
+                  <Gift size={22} color="#10B981" />
                 </View>
                 <View style={styles.updateContent}>
                   <Text style={styles.updateTitle}>Check out our latest promotions</Text>
@@ -528,8 +541,8 @@ const HomeScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   scrollContainer: {
     paddingBottom: 100,
+    backgroundColor: '#F8FAFC',
   },
-
 
   /* Section Headers */
   sectionHeader: {
@@ -541,159 +554,104 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: theme.colors.text,
-    letterSpacing: -0.5,
-    // paddingHorizontal: 14
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+    letterSpacing: -0.3,
   },
-
   viewAllText: {
     color: theme.colors.primary,
     fontSize: 14,
     fontWeight: '600',
   },
 
-  /* --- Revamped Featured Styles --- */
-
-  featuredCardRevamp: {
-    borderRadius: 18,
-    overflow: 'hidden',
-    backgroundColor: theme.colors.background,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-      },
-      android: { elevation: 6 },
-    }),
-    marginBottom: 14,
-  },
-
-  cardImageRevamp: {
-    width: '100%',
-    height: 190,
-    justifyContent: 'flex-end',
-  },
-
-  cardImageStyleRevamp: {
-    resizeMode: 'cover',
-  },
-
-  cardOverlayRevamp: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-
-  priceChipRevamp: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  /* --- Clean Featured Styles --- */
+  featuredCardClean: {
     borderRadius: 16,
-    zIndex: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.4)',
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 14,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 5,
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
       },
-      android: { elevation: 4 },
+      android: { elevation: 3 },
     }),
   },
-
-  priceChipText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.colors.text,
+  cardImageContainer: {
+    position: 'relative',
+    height: 120,
   },
-
-  cardBodyRevamp: {
-    padding: 16,
-    paddingBottom: 20,
+  cardImageClean: {
+    width: '100%',
+    height: '100%',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
-
-  cardTitleRevamp: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: theme.colors.background,
-    marginBottom: 4,
-    textShadowColor: 'rgba(0,0,0,0.4)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-
-  cardSubtitleRevamp: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#F1F5F9',
-    opacity: 0.9,
-    marginBottom: 14,
-  },
-
-  actionBarRevamp: {
-    backgroundColor: theme.colors.background,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  priceBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
       },
-      android: { elevation: 4 },
+      android: { elevation: 2 },
     }),
   },
-
-  actionBarText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: 'black',
-    flex: 1,
+  priceBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#10B981',
   },
-
-  actionArrowCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: theme.colors.secondary,
-    justifyContent: 'center',
+  cardContent: {
+    padding: 12,
+  },
+  cardTitleClean: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  cardSubtitleClean: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 12,
+  },
+  bookButtonClean: {
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 10,
+    borderRadius: 10,
     alignItems: 'center',
   },
-
-  shineOverlayRevamp: {
-    position: 'absolute',
-    left: -80,
-    top: 0,
-    width: 100,
-    height: '100%',
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    transform: [{ skewX: '-20deg' }],
+  bookButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 
   /* Featured Grid */
   featuredWrapper: {
     marginHorizontal: 20,
     marginTop: 8,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   featuredHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   featuredGrid: {
     flexDirection: 'row',
@@ -841,28 +799,40 @@ const styles = StyleSheet.create({
   updateItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
     padding: 16,
-    borderRadius: 16,
-    marginHorizontal: 20,
+    borderRadius: 14,
+    marginHorizontal: 0,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+      },
+      android: { elevation: 1 },
+    }),
   },
   updateIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 14,
+    backgroundColor: '#F0FDF4',
   },
   updateContent: {
     flex: 1,
   },
   updateTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   updateSubtitle: {
     fontSize: 13,
@@ -924,26 +894,55 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
-  offersButton: {
-    backgroundColor: '#0EA5E9',
+  /* Offers Banner - Clean Design */
+  offersBanner: {
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 20,
     marginBottom: 20,
     paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    paddingHorizontal: 20,
+    borderRadius: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 6,
+      },
+      android: { elevation: 2 },
+    }),
   },
-  offersButtonText: {
+  offersContent: {
+    flex: 1,
+  },
+  offersTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: '700',
+    color: '#10B981',
+    marginBottom: 2,
   },
-  offersButtonSubtext: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: '#000',
+  offersSubtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  offersArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  offersArrowText: {
+    fontSize: 18,
+    color: '#6B7280',
+    fontWeight: '600',
   },
   gridContainer: {
     flexDirection: 'row',
