@@ -224,8 +224,8 @@ const HomeScreen = ({ navigation }: any) => {
   };
 
   const handleFeaturedServicePress = (service: any) => {
-    setSelectedCategory(service.category);
-    setShowServiceModal(true);
+    // Navigate to Services tab with category param to open modal there
+    navigation.navigate('Services', { category: service.category });
   };
 
   const handlePackagePress = (pkg: PackageType) => {
@@ -254,8 +254,8 @@ const HomeScreen = ({ navigation }: any) => {
   };
 
   const handleCategoryPress = (category: any) => {
-    setSelectedCategory(category.name);
-    setShowServiceModal(true);
+    // Navigate to Services tab with category param to open modal there
+    navigation.navigate('Services', { category: category.name });
   };
 
   const handleServiceModalClose = () => {
@@ -387,8 +387,8 @@ const HomeScreen = ({ navigation }: any) => {
               style={[styles.featuredCardClean, { width: cardWidth }]}
               activeOpacity={0.7}
               onPress={() => {
-                setSelectedCategory(item.category);
-                setShowServiceModal(true);
+                // Navigate to Services tab with category param to open modal there
+                navigation.navigate('Services', { category: item.category });
               }}>
               {/* Image Container */}
               <View style={styles.cardImageContainer}>
@@ -416,8 +416,8 @@ const HomeScreen = ({ navigation }: any) => {
                 <TouchableOpacity
                   style={styles.bookButtonClean}
                   onPress={() => {
-                    setSelectedCategory(item.category);
-                    setShowServiceModal(true);
+                    // Navigate to Services tab with category param to open modal there
+                    navigation.navigate('Services', { category: item.category });
                   }}
                   activeOpacity={0.8}>
                   <Text style={styles.bookButtonText}>Book Now</Text>

@@ -122,7 +122,7 @@ const theme = {
 const GOOGLE_MAPS_API_KEY = 'AIzaSyCMO_1dOAF7VJKnzEOu1dwhaxCtsfy_HMg';
 
 /* -------------------- SCREEN -------------------- */
-const ServicesScreen = () => {
+const ServicesScreen = ({ route }: any) => {
   const toast = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -145,6 +145,17 @@ const ServicesScreen = () => {
   const [locationPermission, setLocationPermission] = useState(false);
   const [locationName, setLocationName] = useState<string>('your area');
   const [locationLoading, setLocationLoading] = useState(false);
+
+  /* -------------------- HANDLE ROUTE PARAMS FROM HOME -------------------- */
+  useEffect(() => {
+    const categoryFromRoute = route?.params?.category;
+    if (categoryFromRoute) {
+      // Open the service modal for the category passed from Home screen
+      setSelectedCategory(categoryFromRoute);
+      setShowServiceModal(true);
+      fetchServicesByCategory(categoryFromRoute);
+    }
+  }, [route?.params?.category]);
 
   /* -------------------- LOCATION NAME FROM COORDINATES -------------------- */
   const getLocationName = async (lat: number, lng: number) => {
