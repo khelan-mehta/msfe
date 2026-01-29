@@ -215,7 +215,7 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({ visible, modalAnim, 
 
             <View style={sharedStyles.inputGroup}>
               <Text style={sharedStyles.inputLabel}>Company Brief</Text>
-              <TextInput value={companyBrief} onChangeText={setCompanyBrief} placeholder="Short description" style={sharedStyles.textArea} multiline />
+              <TextInput value={companyBrief} onChangeText={setCompanyBrief} placeholder="Short description" style={sharedStyles.textInput} multiline />
             </View>
 
             <View style={sharedStyles.inputGroup}>
