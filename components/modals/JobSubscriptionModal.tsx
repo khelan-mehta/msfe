@@ -361,7 +361,10 @@ export const JobSubscriptionModal: React.FC<JobSubscriptionModalProps> = ({
             contentContainerStyle={{ paddingBottom: 40 }}
             scrollEnabled={paymentStatus === 'idle' || paymentStatus === 'failed'}>
             {(paymentStatus === 'idle' || paymentStatus === 'failed') &&
-              JOB_SEEKER_SUBSCRIPTION_PLANS.map(renderPlanCard)}
+  JOB_SEEKER_SUBSCRIPTION_PLANS
+    .filter(plan => plan.id === 'basic')
+    .map(renderPlanCard)}
+
           </ScrollView>
         </Animated.View>
       </View>

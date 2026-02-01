@@ -707,7 +707,7 @@ const ServicesScreen = ({ route }: any) => {
                       </Text>
 
                       <View style={styles.cardFooter}>
-                        <TouchableOpacity style={styles.cardBookBtn}>
+                        <TouchableOpacity style={styles.cardBookBtn} onPress={() => handleServiceItemPress(service)}>
                           <Text style={styles.cardBookBtnText}>Book</Text>
                         </TouchableOpacity>
                       </View>

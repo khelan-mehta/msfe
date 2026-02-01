@@ -1,566 +1,759 @@
-// JobsScreen.tsx (Expo + React Native)
-import React, { useState, useRef, useCallback } from 'react';
+// screens/JobSetupScreen.tsx - Full job seeker setup flow (KYC → Subscription → Job Profile)
+
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   ScrollView,
+  TouchableOpacity,
   StyleSheet,
-  Modal,
+  StatusBar,
+  ActivityIndicator,
+  Animated,
   RefreshControl,
 } from 'react-native';
-import {
-  Search,
-  ArrowLeft,
-  ChevronDown,
-  Wrench,
-  Zap,
-  Brush,
-  Paintbrush,
-  ChevronLeft,
-} from 'lucide-react-native';
-import { Container } from './Container';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ChevronLeft, Briefcase, Shield, CreditCard, CheckCircle, Clock, XCircle, ChevronRight } from 'lucide-react-native';
+
+// Try to import Expo Router - will be undefined if not using Expo Router
+let useRouter: any;
+try {
+  useRouter = require('expo-router').useRouter;
+} catch (e) {
+  useRouter = null;
+}
+
+import { JobFlowState, UserProfile, JobSeekerProfile } from '../types';
+import { useProfile } from '../hooks';
+import { getJobSetupStatus } from '../utils';
+import { JobSubscriptionModal, JobProfileModal } from './modals';
+import { colors, sharedStyles } from './styles/shared';
 import { Header } from './Header';
-import { JobList } from './JobList';
-import { useToast } from '../context/ToastContext';
-import { STORAGE_KEYS } from '../constants';
-import { getItem, setItem } from '../utils/storage';
 
-const JobsScreen = ({ navigation }: any) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  const MIN_SEARCH_LENGTH = 3; // only search after this many characters
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedLocation, setSelectedLocation] = useState('All');
-  const [selectedDate, setSelectedDate] = useState('All');
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [showLocationModal, setShowLocationModal] = useState(false);
-  const [showDateModal, setShowDateModal] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const toast = useToast();
-  const shortQueryToastShown = useRef(false);
-  const [searchHintSuppressed, setSearchHintSuppressed] = useState<boolean>(false);
+interface Props {
+  navigation?: any;
+  onComplete?: () => void;
+  onBack?: () => void;
+}
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    // Reset filters and refresh data
-    setSelectedCategory('All');
-    setSelectedLocation('All');
-    setSelectedDate('All');
-    setSearchQuery('');
-    setDebouncedQuery('');
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1500);
-  }, []);
+export const JobSetupScreen: React.FC<Props> = ({ navigation, onComplete, onBack }) => {
+  const router = useRouter ? useRouter() : null;
 
-  // Load persisted preference for showing the search hint (once across restarts)
-  React.useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const val = await getItem(STORAGE_KEYS.SEARCH_HINT_SHOWN);
-        if (!mounted) return;
-        setSearchHintSuppressed(Boolean(val));
-        if (val) shortQueryToastShown.current = true;
-      } catch (e) {
-        console.warn('Failed to read search hint preference:', e);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const {
+    loading,
+    refreshing,
+    userProfile,
+    jobSeekerProfile,
+    jobFlowState,
+    loadUserData,
+    handleRefresh,
+  } = useProfile();
 
-  // Debounce search input to limit API calls
-  React.useEffect(() => {
-    const handler = setTimeout(() => {
-      const q = searchQuery.trim();
-      if (q.length === 0) {
-        setDebouncedQuery('');
-        shortQueryToastShown.current = false; // reset hint flag when cleared
-      } else if (q.length >= MIN_SEARCH_LENGTH) {
-        setDebouncedQuery(q);
-        shortQueryToastShown.current = false; // reset so future short queries show hint again
+  // Modal visibility states
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [showJobProfileModal, setShowJobProfileModal] = useState(false);
+  const [isEditingJobProfile, setIsEditingJobProfile] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const modalAnim = useRef(new Animated.Value(0)).current;
+
+  // Pull-to-refresh handler
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      if (handleRefresh) {
+        await handleRefresh();
       } else {
-        // show a one-time toast to inform the user about the minimum search length if not persisted
-        if (!shortQueryToastShown.current && !searchHintSuppressed) {
-          try {
-            toast.showInfo('Search tip', `Type ${MIN_SEARCH_LENGTH}+ characters to search`);
-            // Persist preference so we don't show this hint again on future app starts
-            setItem(STORAGE_KEYS.SEARCH_HINT_SHOWN, '1').catch(err => console.warn('Failed to persist search hint preference:', err));
-            setSearchHintSuppressed(true);
-          } catch (e) {
-            // swallow if toast unavailable
-            console.warn('Toast unavailable:', e);
-          }
-          shortQueryToastShown.current = true;
-        }
-        // keep previous debouncedQuery (do not clear results immediately)
+        await loadUserData();
       }
-    }, 450);
+    } catch (error) {
+      console.error('Error refreshing:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [handleRefresh, loadUserData]);
 
-    return () => clearTimeout(handler);
-  }, [searchQuery, searchHintSuppressed]);
+  // Navigate to KYC screen
+  const navigateToKyc = () => {
+    if (router) {
+      router.push('/kyc');
+    } else if (navigation) {
+      navigation.navigate('KycScreen');
+    }
+  };
 
-  const allJobs = [
-    {
-      id: '1',
-      title: 'Fix Leaky Faucet',
-      category: 'Plumbing',
-      location: 'New York, NY',
-      date: 'Today',
-      icon: Wrench,
-      color: '#B3E5FC',
-    },
-    {
-      id: '2',
-      title: 'Install Ceiling Fan',
-      category: 'Electrical',
-      location: 'Newark, NJ',
-      date: 'Today',
-      icon: Zap,
-      color: '#B3E5FC',
-    },
-    {
-      id: '3',
-      title: 'Deep Clean Apartment',
-      category: 'Cleaning',
-      location: 'Brooklyn, NY',
-      date: 'This Week',
-      icon: Brush,
-      color: '#B3E5FC',
-    },
-    {
-      id: '4',
-      title: 'Paint Living Room',
-      category: 'Painting',
-      location: 'Jersey City, NJ',
-      date: 'This Week',
-      icon: Paintbrush,
-      color: '#B3E5FC',
-    },
-    {
-      id: '5',
-      title: 'Fix Refrigerator',
-      category: 'Appliance Repair',
-      location: 'New York, NY',
-      date: 'This Month',
-      icon: Wrench,
-      color: '#B3E5FC',
-    },
-    {
-      id: '6',
-      title: 'Replace Light Switch',
-      category: 'Electrical',
-      location: 'Brooklyn, NY',
-      date: 'Today',
-      icon: Zap,
-      color: '#B3E5FC',
-    },
-    {
-      id: '7',
-      title: 'Clean Kitchen',
-      category: 'Cleaning',
-      location: 'New York, NY',
-      date: 'This Week',
-      icon: Brush,
-      color: '#B3E5FC',
-    },
-    {
-      id: '8',
-      title: 'Unclog Drain',
-      category: 'Plumbing',
-      location: 'Newark, NJ',
-      date: 'This Month',
-      icon: Wrench,
-      color: '#B3E5FC',
-    },
-  ];
+  // Handle back navigation
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else if (router) {
+      router.back();
+    } else if (navigation && navigation.goBack) {
+      navigation.goBack();
+    }
+  };
 
-  const categories = ['All', 'Plumbing', 'Electrical', 'Cleaning', 'Painting', 'Appliance Repair'];
-  const locations = ['All', 'New York, NY', 'Newark, NJ', 'Brooklyn, NY', 'Jersey City, NJ'];
-  const dates = ['All', 'Today', 'This Week', 'This Month'];
+  // Animate modals
+  useEffect(() => {
+    if (showSubscriptionModal || showJobProfileModal) {
+      Animated.spring(modalAnim, {
+        toValue: 1,
+        tension: 65,
+        friction: 10,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(modalAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [showSubscriptionModal, showJobProfileModal]);
 
-  // Filter jobs based on selected criteria
-  const filteredJobs = allJobs.filter((job) => {
-    const matchesSearch =
-      job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.category.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || job.category === selectedCategory;
-    const matchesLocation = selectedLocation === 'All' || job.location === selectedLocation;
-    const matchesDate = selectedDate === 'All' || job.date === selectedDate;
+  // Auto-show appropriate modals based on flow state
+  useEffect(() => {
+    if (loading) return;
 
-    return matchesSearch && matchesCategory && matchesLocation && matchesDate;
-  });
+    setShowSubscriptionModal(false);
+    setShowJobProfileModal(false);
 
-  const FilterModal = ({
-    visible,
-    onClose,
-    title,
-    options,
-    selected,
-    onSelect,
-  }: {
-    visible: boolean;
-    onClose: () => void;
-    title: string;
-    options: string[];
-    selected: string;
-    onSelect: (option: string) => void;
-  }) => (
-    <Modal visible={visible} transparent={true} animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
-        <View style={styles.modalContent}>
-          <Header name='Jobs Listings'/>
-          <ScrollView style={styles.modalOptions}>
-            {options.map((option) => (
-              <TouchableOpacity
-                key={option}
-                style={[styles.modalOption, selected === option && styles.modalOptionSelected]}
-                onPress={() => {
-                  onSelect(option);
-                  onClose();
-                }}>
-                <Text
-                  style={[
-                    styles.modalOptionText,
-                    selected === option && styles.modalOptionTextSelected,
-                  ]}>
-                  {option}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      </TouchableOpacity>
-    </Modal>
-  );
+    const timer = setTimeout(() => {
+      switch (jobFlowState) {
+        case 'job_subscription_required':
+          setShowSubscriptionModal(true);
+          break;
+        case 'job_profile_required':
+          setIsEditingJobProfile(false);
+          setShowJobProfileModal(true);
+          break;
+        default:
+          break;
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [jobFlowState, loading]);
+
+  // Handle Subscription success
+  const handleSubscriptionSuccess = async () => {
+    setShowSubscriptionModal(false);
+    await loadUserData();
+    setTimeout(() => {
+      setIsEditingJobProfile(false);
+      setShowJobProfileModal(true);
+    }, 500);
+  };
+
+  // Handle Job Profile success
+  const handleJobProfileSuccess = async () => {
+    setShowJobProfileModal(false);
+    setIsEditingJobProfile(false);
+    await loadUserData();
+
+    if (onComplete) {
+      onComplete();
+    }
+  };
+
+  // Handle edit job profile
+  const handleEditJobProfile = () => {
+    setIsEditingJobProfile(true);
+    setShowJobProfileModal(true);
+  };
+
+  // Loading screen
+  if (loading && !refreshing && !isRefreshing) {
+    return (
+      <View style={sharedStyles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.purple} />
+        <Text style={sharedStyles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
+  // Get status for display
+  const jobStatus = getJobSetupStatus(userProfile);
 
   return (
-    <Container>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+
+      <Header name="Job Profile Setup" leftIcon={ChevronLeft} onLeftPress={() => navigation?.goBack()} />
+
       <ScrollView
-        style={styles.container}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={isRefreshing || refreshing}
             onRefresh={onRefresh}
-            colors={['#0EA5E9']}
-            tintColor="#0EA5E9"
+            colors={[colors.purple]}
+            tintColor={colors.purple}
+            title="Pull to refresh"
+            titleColor={colors.textSecondary}
           />
-        }>
-        {/* Header */}
-        <Header name='Jobs Listings'/>
+        }
+      >
+        {/* Status Banner */}
+        <JobStatusBanner
+          flowState={jobFlowState}
+          userProfile={userProfile}
+          onKycPress={navigateToKyc}
+          onSubscriptionPress={() => setShowSubscriptionModal(true)}
+          onJobProfilePress={() => {
+            setIsEditingJobProfile(false);
+            setShowJobProfileModal(true);
+          }}
+        />
 
-        {/* Search Bar */}
-        <View style={styles.searchBar}>
-          <Search size={20} color="#9CA3AF" />
-          <TextInput
-            placeholder="Search for jobs"
-            placeholderTextColor="#9CA3AF"
-            style={styles.searchBarInput}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
+        {/* User Info Card */}
+        {userProfile && <UserInfoCard userProfile={userProfile} />}
 
-        {/* Small hint to guide search usage when query is short */}
-        {searchQuery.length > 0 && searchQuery.trim().length < MIN_SEARCH_LENGTH && (
-          <Text style={styles.searchHint}>Type {MIN_SEARCH_LENGTH}+ characters to search</Text>
+        {/* Job Seeker Profile Card */}
+        {jobSeekerProfile && (
+          <JobSeekerProfileCard profile={jobSeekerProfile} onEdit={handleEditJobProfile} />
         )}
 
-        {/* Testing Phase Notice */}
-        <View style={styles.noticeContainer}>
-          <Text style={styles.noticeText}>
-            This application is currently in closed testing phase. Some features such as worker calling and booking are under development. Displayed worker contact details are placeholder data for testing purposes. Full functionality will be enabled in upcoming updates.
-          </Text>
+        {/* Progress Steps */}
+        <View style={styles.progressSection}>
+          <Text style={styles.progressTitle}>Setup Progress</Text>
+          <View style={styles.progressCard}>
+            {renderProgressStep(1, 'KYC Verification', getKycStepStatus(jobFlowState), navigateToKyc)}
+            {renderProgressStep(
+              2,
+              'Choose Subscription',
+              getSubscriptionStepStatus(jobFlowState, userProfile),
+              () => setShowSubscriptionModal(true)
+            )}
+            {renderProgressStep(3, 'Create Job Profile', getJobStepStatus(jobFlowState), () => {
+              setIsEditingJobProfile(false);
+              setShowJobProfileModal(true);
+            })}
+          </View>
         </View>
 
-        {/* Filters */}
-        <View style={styles.filtersRow}>
-          <TouchableOpacity style={styles.filterButton} onPress={() => setShowCategoryModal(true)}>
-            <Text style={styles.filterButtonText}>
-              {selectedCategory === 'All' ? 'Category' : selectedCategory}
-            </Text>
-            <ChevronDown size={16} color="#000" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.filterButton} onPress={() => setShowLocationModal(true)}>
-            <Text style={styles.filterButtonText}>
-              {selectedLocation === 'All' ? 'Location' : selectedLocation}
-            </Text>
-            <ChevronDown size={16} color="#000" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.filterButton} onPress={() => setShowDateModal(true)}>
-            <Text style={styles.filterButtonText}>
-              {selectedDate === 'All' ? 'Date' : selectedDate}
-            </Text>
-            <ChevronDown size={16} color="#000" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Results Count */}
-        <View style={styles.resultsHeader}>
-          <Text style={styles.resultsCount}>
-            {filteredJobs.length} {filteredJobs.length === 1 ? 'job' : 'jobs'} found
-          </Text>
-          {(selectedCategory !== 'All' || selectedLocation !== 'All' || selectedDate !== 'All') && (
-            <TouchableOpacity
-              onPress={() => {
-                setSelectedCategory('All');
-                setSelectedLocation('All');
-                setSelectedDate('All');
-              }}>
-              <Text style={styles.clearFilters}>Clear filters</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Job Listings (remote) */}
-        <View style={styles.jobListings}>
-          <JobList
-            q={debouncedQuery || undefined}
-            location={selectedLocation !== 'All' ? selectedLocation : undefined}
-            onJobPress={(job: any) => navigation.navigate('JobApply', { jobId: job.id })}
-            onResults={(count: number, total?: number) => {
-              // update results header if needed (we leave filteredJobs length in-place for instant feedback)
-            }}
-          />
-        </View>
-
-        <View style={{ height: 100 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
 
-        {/* Filter Modals */}
-        <FilterModal
-          visible={showCategoryModal}
-          onClose={() => setShowCategoryModal(false)}
-          title="Select Category"
-          options={categories}
-          selected={selectedCategory}
-          onSelect={setSelectedCategory}
-        />
-        <FilterModal
-          visible={showLocationModal}
-          onClose={() => setShowLocationModal(false)}
-          title="Select Location"
-          options={locations}
-          selected={selectedLocation}
-          onSelect={setSelectedLocation}
-        />
-        <FilterModal
-          visible={showDateModal}
-          onClose={() => setShowDateModal(false)}
-          title="Select Date"
-          options={dates}
-          selected={selectedDate}
-          onSelect={setSelectedDate}
-        />
-    </Container>
+      {/* Job Subscription Modal */}
+      <JobSubscriptionModal
+        visible={showSubscriptionModal}
+        flowState={jobFlowState}
+        userProfile={userProfile}
+        fullName={userProfile?.name || ''}
+        modalAnim={modalAnim}
+        onClose={() => setShowSubscriptionModal(false)}
+        onSuccess={handleSubscriptionSuccess}
+      />
+
+      {/* Job Profile Modal */}
+      <JobProfileModal
+        visible={showJobProfileModal}
+        flowState={jobFlowState}
+        isEditing={isEditingJobProfile}
+        existingProfile={jobSeekerProfile}
+        modalAnim={modalAnim}
+        onClose={() => {
+          setShowJobProfileModal(false);
+          setIsEditingJobProfile(false);
+        }}
+        onSuccess={handleJobProfileSuccess}
+      />
+    </View>
+  );
+};
+
+// Status Banner Component
+interface JobStatusBannerProps {
+  flowState: JobFlowState;
+  userProfile: UserProfile | null;
+  onKycPress: () => void;
+  onSubscriptionPress: () => void;
+  onJobProfilePress: () => void;
+}
+
+const JobStatusBanner: React.FC<JobStatusBannerProps> = ({
+  flowState,
+  userProfile,
+  onKycPress,
+  onSubscriptionPress,
+  onJobProfilePress,
+}) => {
+  const getBannerConfig = () => {
+    switch (flowState) {
+      case 'kyc_required':
+        return {
+          colors: ['#EF4444', '#DC2626'] as [string, string],
+          icon: <Shield size={28} color="#FFFFFF" />,
+          title: 'KYC Required',
+          subtitle: 'Complete verification to start applying for jobs',
+          actionText: 'Start KYC',
+          onAction: onKycPress,
+        };
+      case 'kyc_under_review':
+        return {
+          colors: ['#F59E0B', '#D97706'] as [string, string],
+          icon: <Clock size={28} color="#FFFFFF" />,
+          title: 'KYC Under Review',
+          subtitle: 'Your documents are being verified',
+          actionText: userProfile?.job_seeker_subscription_id ? undefined : 'Get Subscription',
+          onAction: userProfile?.job_seeker_subscription_id ? undefined : onSubscriptionPress,
+        };
+      case 'kyc_rejected':
+        return {
+          colors: ['#EF4444', '#DC2626'] as [string, string],
+          icon: <XCircle size={28} color="#FFFFFF" />,
+          title: 'KYC Rejected',
+          subtitle: 'Please resubmit your documents',
+          actionText: 'Resubmit KYC',
+          onAction: onKycPress,
+        };
+      case 'job_subscription_required':
+        return {
+          colors: ['#8B5CF6', '#7C3AED'] as [string, string],
+          icon: <CreditCard size={28} color="#FFFFFF" />,
+          title: 'Choose a Plan',
+          subtitle: 'Subscribe to create your job profile',
+          actionText: 'View Plans',
+          onAction: onSubscriptionPress,
+        };
+      case 'job_profile_required':
+        return {
+          colors: ['#10B981', '#059669'] as [string, string],
+          icon: <Briefcase size={28} color="#FFFFFF" />,
+          title: 'Create Job Profile',
+          subtitle: 'Set up your profile to start applying for jobs',
+          actionText: 'Create Profile',
+          onAction: onJobProfilePress,
+        };
+      case 'job_profile_pending':
+        return {
+          colors: ['#F59E0B', '#D97706'] as [string, string],
+          icon: <Clock size={28} color="#FFFFFF" />,
+          title: 'Profile Under Review',
+          subtitle: 'Your job profile is being verified',
+          actionText: undefined,
+          onAction: undefined,
+        };
+      case 'job_profile_verified':
+        return {
+          colors: ['#10B981', '#059669'] as [string, string],
+          icon: <CheckCircle size={28} color="#FFFFFF" />,
+          title: 'Profile Verified',
+          subtitle: 'You can now apply for jobs',
+          actionText: undefined,
+          onAction: undefined,
+        };
+      default:
+        return null;
+    }
+  };
+
+  const bannerConfig = getBannerConfig();
+  if (!bannerConfig) return null;
+
+  return (
+    <TouchableOpacity
+      style={styles.statusBanner}
+      onPress={bannerConfig.onAction}
+      disabled={!bannerConfig.onAction}
+      activeOpacity={bannerConfig.onAction ? 0.8 : 1}
+    >
+      <LinearGradient
+        colors={bannerConfig.colors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.statusBannerGradient}
+      >
+        <View style={styles.statusBannerContent}>
+          <View style={styles.statusBannerIconContainer}>{bannerConfig.icon}</View>
+          <View style={styles.statusBannerText}>
+            <Text style={styles.statusBannerTitle}>{bannerConfig.title}</Text>
+            <Text style={styles.statusBannerSubtitle}>{bannerConfig.subtitle}</Text>
+          </View>
+          {bannerConfig.actionText && (
+            <View style={styles.statusBannerAction}>
+              <Text style={styles.statusBannerActionText}>{bannerConfig.actionText}</Text>
+              <ChevronRight size={16} color="#FFFFFF" />
+            </View>
+          )}
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+};
+
+// User Info Card Component
+const UserInfoCard: React.FC<{ userProfile: UserProfile }> = ({ userProfile }) => (
+  <View style={styles.userCard}>
+    <View style={styles.userCardRow}>
+      <Text style={styles.userCardLabel}>Name</Text>
+      <Text style={styles.userCardValue}>{userProfile.name || 'Not set'}</Text>
+    </View>
+    <View style={styles.userCardRow}>
+      <Text style={styles.userCardLabel}>Mobile</Text>
+      <Text style={styles.userCardValue}>{userProfile.mobile}</Text>
+    </View>
+    {userProfile.email && (
+      <View style={styles.userCardRow}>
+        <Text style={styles.userCardLabel}>Email</Text>
+        <Text style={styles.userCardValue}>{userProfile.email}</Text>
+      </View>
+    )}
+    <View style={styles.userCardRow}>
+      <Text style={styles.userCardLabel}>KYC Status</Text>
+      <Text style={[styles.userCardValue, { textTransform: 'capitalize' }]}>
+        {userProfile.kyc_status || 'Pending'}
+      </Text>
+    </View>
+  </View>
+);
+
+// Job Seeker Profile Card Component
+const JobSeekerProfileCard: React.FC<{ profile: JobSeekerProfile; onEdit: () => void }> = ({
+  profile,
+  onEdit,
+}) => (
+  <View style={styles.profileCard}>
+    <View style={styles.profileCardHeader}>
+      <View style={styles.profileIconContainer}>
+        <Briefcase size={24} color={colors.purple} />
+      </View>
+      <View style={styles.profileCardHeaderText}>
+        <Text style={styles.profileCardTitle}>{profile.full_name}</Text>
+        {profile.headline && <Text style={styles.profileCardSubtitle}>{profile.headline}</Text>}
+      </View>
+      <TouchableOpacity style={styles.editButton} onPress={onEdit}>
+        <Text style={styles.editButtonText}>Edit</Text>
+      </TouchableOpacity>
+    </View>
+    <View style={styles.profileCardDetails}>
+      {profile.skills.length > 0 && (
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Skills:</Text>
+          <Text style={styles.detailValue}>{profile.skills.slice(0, 3).join(', ')}{profile.skills.length > 3 ? '...' : ''}</Text>
+        </View>
+      )}
+      {profile.preferred_locations?.length > 0 && (
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Locations:</Text>
+          <Text style={styles.detailValue}>{profile.preferred_locations.join(', ')}</Text>
+        </View>
+      )}
+      <View style={styles.statusRow}>
+        <View style={[styles.statusBadge, { backgroundColor: profile.is_verified ? colors.successLight : colors.warningLight }]}>
+          <Text style={[styles.statusBadgeText, { color: profile.is_verified ? colors.success : colors.warning }]}>
+            {profile.is_verified ? 'Verified' : 'Pending Verification'}
+          </Text>
+        </View>
+      </View>
+    </View>
+  </View>
+);
+
+// Helper functions for progress steps
+const getKycStepStatus = (flowState: JobFlowState): 'pending' | 'active' | 'completed' => {
+  if (['kyc_required', 'kyc_rejected'].includes(flowState)) return 'active';
+  if (flowState === 'kyc_under_review') return 'pending';
+  return 'completed';
+};
+
+const getSubscriptionStepStatus = (
+  flowState: JobFlowState,
+  userProfile: UserProfile | null
+): 'pending' | 'active' | 'completed' => {
+  if (['kyc_required', 'kyc_rejected'].includes(flowState)) return 'pending';
+  if (flowState === 'job_subscription_required') return 'active';
+  if (flowState === 'kyc_under_review' && !userProfile?.job_seeker_subscription_id) return 'active';
+  return 'completed';
+};
+
+const getJobStepStatus = (flowState: JobFlowState): 'pending' | 'active' | 'completed' => {
+  if (['kyc_required', 'kyc_rejected', 'kyc_under_review', 'job_subscription_required'].includes(flowState)) return 'pending';
+  if (flowState === 'job_profile_required') return 'active';
+  return 'completed';
+};
+
+// Progress step renderer
+const renderProgressStep = (
+  step: number,
+  title: string,
+  status: 'pending' | 'active' | 'completed',
+  onPress: () => void
+) => {
+  const getStatusColor = () => {
+    switch (status) {
+      case 'completed':
+        return colors.success;
+      case 'active':
+        return colors.purple;
+      default:
+        return colors.textLight;
+    }
+  };
+
+  return (
+    <TouchableOpacity
+      key={step}
+      style={styles.progressStep}
+      onPress={onPress}
+      disabled={status === 'pending'}
+    >
+      <View
+        style={[
+          styles.progressStepNumber,
+          { backgroundColor: getStatusColor() + '20', borderColor: getStatusColor() },
+        ]}
+      >
+        <Text style={[styles.progressStepNumberText, { color: getStatusColor() }]}>
+          {status === 'completed' ? '✓' : step}
+        </Text>
+      </View>
+      <View style={styles.progressStepContent}>
+        <Text
+          style={[
+            styles.progressStepTitle,
+            { color: status === 'pending' ? colors.textLight : colors.text },
+          ]}
+        >
+          {title}
+        </Text>
+        <Text style={styles.progressStepStatus}>
+          {status === 'completed' ? 'Completed' : status === 'active' ? 'In Progress' : 'Pending'}
+        </Text>
+      </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1F2937',
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 16,
-    borderRadius: 12,
-  },
-  searchBarInput: {
+  scrollView: {
     flex: 1,
-    marginLeft: 12,
-    fontSize: 15,
-    color: '#1F2937',
   },
-  searchHint: {
-    marginHorizontal: 20,
-    marginTop: 8,
-    fontSize: 13,
-    color: '#6B7280',
-  },
-  noticeContainer: {
-    backgroundColor: '#FEF3C7',
-    marginHorizontal: 20,
-    marginTop: 8,
-    marginBottom: 16,
-    padding: 12,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  noticeText: {
-    fontSize: 12,
-    color: '#78350F',
-    lineHeight: 18,
-  },
-  filtersRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 16,
-    gap: 12,
-  },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#B3E5FC',
+  scrollContent: {
+    paddingTop: 24,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingBottom: 40,
+  },
+  // Status Banner
+  statusBanner: {
     borderRadius: 20,
-    gap: 6,
+    marginBottom: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  filterButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1F2937',
-    maxWidth: 80,
+  statusBannerGradient: {
+    padding: 20,
   },
-  resultsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 12,
-  },
-  resultsCount: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  clearFilters: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0EA5E9',
-  },
-  jobListings: {
-    flex: 1,
-  },
-  jobListingsContent: {
-    paddingBottom: 20,
-  },
-  jobCard: {
+  statusBannerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 16,
   },
-  jobIconContainer: {
+  statusBannerIconContainer: {
     width: 56,
     height: 56,
-    borderRadius: 16,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
   },
-  jobCardContent: {
+  statusBannerText: {
     flex: 1,
   },
-  jobCardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
+  statusBannerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
-  jobCardCategory: {
+  statusBannerSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 2,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
-  jobCardLocation: {
-    fontSize: 13,
-    color: '#9CA3AF',
-  },
-  noResultsContainer: {
-    flex: 1,
+  statusBannerAction: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 4,
   },
-  noResultsText: {
-    fontSize: 18,
+  statusBannerActionText: {
+    fontSize: 13,
     fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 8,
+    color: '#FFFFFF',
   },
-  noResultsSubtext: {
-    fontSize: 14,
-    color: '#6B7280',
+  // User Card
+  userCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '70%',
-  },
-  modalHeader: {
+  userCardRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  userCardLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  userCardValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  // Profile Card
+  profileCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  profileCardHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    marginBottom: 16,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
+  profileIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F3E8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  modalClose: {
+  profileCardHeaderText: {
+    flex: 1,
+  },
+  profileCardTitle: {
     fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  profileCardSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  editButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#F3E8FF',
+    borderRadius: 8,
+  },
+  editButtonText: {
+    fontSize: 13,
     fontWeight: '600',
-    color: '#0EA5E9',
+    color: colors.purple,
   },
-  modalOptions: {
-    paddingHorizontal: 20,
+  profileCardDetails: {
+    gap: 8,
   },
-  modalOption: {
-    paddingVertical: 16,
+  detailRow: {
+    flexDirection: 'row',
+  },
+  detailLabel: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    width: 80,
+  },
+  detailValue: {
+    fontSize: 13,
+    color: colors.text,
+    flex: 1,
+  },
+  statusRow: {
+    marginTop: 8,
+  },
+  statusBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  // Progress Section
+  progressSection: {
+    marginTop: 8,
+  },
+  progressTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 16,
+  },
+  progressCard: {
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  progressStep: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.borderLight,
   },
-  modalOptionSelected: {
-    backgroundColor: '#F0F9FF',
+  progressStepNumber: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
   },
-  modalOptionText: {
+  progressStepNumberText: {
     fontSize: 16,
-    color: '#1F2937',
+    fontWeight: '700',
   },
-  modalOptionTextSelected: {
-    color: '#0EA5E9',
+  progressStepContent: {
+    flex: 1,
+  },
+  progressStepTitle: {
+    fontSize: 15,
     fontWeight: '600',
+    marginBottom: 2,
+  },
+  progressStepStatus: {
+    fontSize: 13,
+    color: colors.textSecondary,
   },
 });
 
-export default JobsScreen;
+export default JobSetupScreen;

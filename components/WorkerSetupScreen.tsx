@@ -1,6 +1,6 @@
 // screens/WorkerSetupScreen.tsx - Full worker setup flow (KYC → Subscription → Worker Profile)
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Platform,
   ActivityIndicator,
   Animated,
+  RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, ChevronLeft, RefreshCw, Settings } from 'lucide-react-native';
@@ -37,13 +38,12 @@ import {
 import { Header } from './Header';
 
 interface Props {
-  navigation?: any; // Optional - for React Navigation
+  navigation?: any;
   onComplete?: () => void;
-  onBack?: () => void; // Optional callback for custom back navigation
+  onBack?: () => void;
 }
 
 export const WorkerSetupScreen: React.FC<Props> = ({ navigation, onComplete, onBack }) => {
-  // Use Expo Router if available
   const router = useRouter ? useRouter() : null;
 
   const {
@@ -60,8 +60,25 @@ export const WorkerSetupScreen: React.FC<Props> = ({ navigation, onComplete, onB
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showWorkerProfileModal, setShowWorkerProfileModal] = useState(false);
   const [isEditingWorkerProfile, setIsEditingWorkerProfile] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const modalAnim = useRef(new Animated.Value(0)).current;
+
+  // Pull-to-refresh handler
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      if (handleRefresh) {
+        await handleRefresh();
+      } else {
+        await loadUserData();
+      }
+    } catch (error) {
+      console.error('Error refreshing:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [handleRefresh, loadUserData]);
 
   // Navigate to KYC screen
   const navigateToKyc = () => {
@@ -107,11 +124,9 @@ export const WorkerSetupScreen: React.FC<Props> = ({ navigation, onComplete, onB
   useEffect(() => {
     if (loading) return;
 
-    // Reset all modals first
     setShowSubscriptionModal(false);
     setShowWorkerProfileModal(false);
 
-    // Show appropriate modal after a brief delay (KYC is now on a separate screen)
     const timer = setTimeout(() => {
       switch (flowState) {
         case 'subscription_required':
@@ -157,7 +172,7 @@ export const WorkerSetupScreen: React.FC<Props> = ({ navigation, onComplete, onB
   };
 
   // Loading screen
-  if (loading && !refreshing) {
+  if (loading && !refreshing && !isRefreshing) {
     return (
       <View style={sharedStyles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -170,11 +185,23 @@ export const WorkerSetupScreen: React.FC<Props> = ({ navigation, onComplete, onB
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Header */}
+      <Header name="Worker Setup" leftIcon={ChevronLeft} onLeftPress={() => navigation?.goBack()} />
 
-      <Header name="Worker Setup" leftIcon={ChevronLeft} onLeftPress={() => navigation.goBack()} />
-
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing || refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+            title="Pull to refresh"
+            titleColor={colors.textSecondary}
+          />
+        }
+      >
         {/* Status Banner */}
         <StatusBanner
           flowState={flowState}
@@ -328,19 +355,16 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     backgroundColor: '#fff',
   },
-
   backRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     marginBottom: 6,
   },
-
   backText: {
     fontSize: 14,
-    color: '#6B7280', // subtle gray
+    color: '#6B7280',
   },
-
   title: {
     fontSize: 22,
     fontWeight: '700',
@@ -348,7 +372,7 @@ const styles = StyleSheet.create({
   },
   back: {
     flexDirection: 'row',
-    alignItems: 'center', // vertical alignment
+    alignItems: 'center',
     gap: 8,
   },
   container: {

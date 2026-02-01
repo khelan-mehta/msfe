@@ -84,6 +84,16 @@ interface Worker {
   profileImage: any;
 }
 
+interface Job {
+  id: string;
+  title: string;
+  company_name?: string | null;
+  location?: string | null;
+  salary_min?: number | null;
+  salary_max?: number | null;
+  description?: string | null;
+}
+
 const HomeScreen = ({ navigation }: any) => {
   const [activeTab, setActiveTab] = useState<'recent' | 'personalized'>('personalized');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -97,6 +107,7 @@ const HomeScreen = ({ navigation }: any) => {
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [availableWorkers, setAvailableWorkers] = useState<Worker[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [jobCount, setJobCount] = useState<number>(0);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -108,64 +119,6 @@ const HomeScreen = ({ navigation }: any) => {
 
   const allServices = Object.values(serviceCategories).flat();
   const allCategories = Object.keys(serviceCategories);
-
-  // Mock data (fixed color strings)
-  const recentJobs = [
-    {
-      id: '1',
-      title: 'Need a plumber for a leaky faucet',
-      time: 'Posted 2 hours ago',
-      location: 'New York, NY',
-      icon: Droplet,
-      color: '#B3E5FC',
-      budget: '₹80-120',
-    },
-    {
-      id: '2',
-      title: 'Looking for an electrician to fix a short circuit',
-      time: 'Posted 5 hours ago',
-      location: 'Newark, NJ',
-      icon: Zap,
-      color: '#B3E5FC',
-      budget: '₹100-150',
-    },
-    {
-      id: '3',
-      title: 'Deep cleaning service needed for 3BR apartment',
-      time: 'Posted 8 hours ago',
-      location: 'Brooklyn, NY',
-      icon: Brush,
-      color: '#B3E5FC',
-      budget: '₹150-200',
-    },
-    {
-      id: '4',
-      title: 'AC repair - not cooling properly',
-      time: 'Posted 12 hours ago',
-      location: 'Queens, NY',
-      icon: Fan,
-      color: '#B3E5FC',
-      budget: '₹90-160',
-    },
-    {
-      id: '5',
-      title: 'Interior painting for living room and bedroom',
-      time: 'Posted 1 day ago',
-      location: 'Manhattan, NY',
-      icon: PaintBucket,
-      color: '#B3E5FC',
-      budget: '₹400-600',
-    },
-    {
-      id: '6',
-      title: 'Tree trimming and lawn maintenance',
-      time: 'Posted 1 day ago',
-      location: 'Staten Island, NY',
-      icon: Trees,
-      color: '#B3E5FC',
-      budget: '₹200-350',
-    },
-  ];
 
   // Filter services and categories based on search query
   const filteredServices = allServices.filter((service) =>
@@ -199,10 +152,6 @@ const HomeScreen = ({ navigation }: any) => {
   }));
 
   // Event handlers
-  const handleNotificationPress = () => {
-    console.log('Notification pressed');
-  };
-
   const handleSearchFocus = () => {
     setIsSearchFocused(true);
   };
@@ -224,7 +173,6 @@ const HomeScreen = ({ navigation }: any) => {
   };
 
   const handleFeaturedServicePress = (service: any) => {
-    // Navigate to Services tab with category param to open modal there
     navigation.navigate('Services', { category: service.category });
   };
 
@@ -233,7 +181,6 @@ const HomeScreen = ({ navigation }: any) => {
     setShowPackageModal(true);
   };
 
-  // Direct worker selection after service selection
   const handleServiceItemPress = (service: Service) => {
     setSelectedService(service);
     setShowServiceModal(false);
@@ -254,7 +201,6 @@ const HomeScreen = ({ navigation }: any) => {
   };
 
   const handleCategoryPress = (category: any) => {
-    // Navigate to Services tab with category param to open modal there
     navigation.navigate('Services', { category: category.name });
   };
 
@@ -266,7 +212,6 @@ const HomeScreen = ({ navigation }: any) => {
     setShowPackageModal(false);
   };
 
-  // Package booking goes directly to worker selection
   const handleBookPackage = () => {
     setShowPackageModal(false);
 
@@ -285,7 +230,6 @@ const HomeScreen = ({ navigation }: any) => {
     setShowWorkerModal(true);
   };
 
-  // Worker selection confirmation (fixed template string)
   const handleWorkerSelect = (worker: Worker) => {
     setSelectedWorker(worker);
     setShowWorkerModal(false);
@@ -312,8 +256,16 @@ const HomeScreen = ({ navigation }: any) => {
     setShowWorkerModal(false);
   };
 
-  const handleJobPress = (job: any) => {
+  // Handle job press - navigate to job details
+  const handleJobPress = (job: Job) => {
     console.log('Job pressed:', job.title);
+    // Navigate to job details screen if available
+    // navigation.navigate('JobDetails', { jobId: job.id });
+  };
+
+  // Handle job results callback
+  const handleJobResults = (count: number, total?: number) => {
+    setJobCount(total || count);
   };
 
   const handleOffersPress = () => {
@@ -321,7 +273,7 @@ const HomeScreen = ({ navigation }: any) => {
     Alert.alert('Offers', 'Book your service in advance and get exclusive discounts!');
   };
 
-  // Featured services data - improved cards (4 items)
+  // Featured services data
   const featuredServicesData = [
     {
       id: 'f1',
@@ -357,10 +309,6 @@ const HomeScreen = ({ navigation }: any) => {
     },
   ];
 
-  /* -----------------------
-     FeaturedGrid component
-     Clean, minimal cards (2x2)
-     ----------------------- */
   const FeaturedGrid: React.FC = () => {
     const cardMargin = 12;
     const numColumns = 2;
@@ -371,7 +319,6 @@ const HomeScreen = ({ navigation }: any) => {
 
     return (
       <View style={styles.featuredWrapper}>
-        {/* Header Row */}
         <View style={styles.featuredHeaderRow}>
           <Text style={styles.sectionTitle}>Featured Services</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Services')}>
@@ -379,7 +326,6 @@ const HomeScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         </View>
 
-        {/* Grid */}
         <View style={styles.featuredGrid}>
           {featuredServicesData.map((item) => (
             <TouchableOpacity
@@ -387,23 +333,19 @@ const HomeScreen = ({ navigation }: any) => {
               style={[styles.featuredCardClean, { width: cardWidth }]}
               activeOpacity={0.7}
               onPress={() => {
-                // Navigate to Services tab with category param to open modal there
                 navigation.navigate('Services', { category: item.category });
               }}>
-              {/* Image Container */}
               <View style={styles.cardImageContainer}>
                 <Image
                   source={item.image}
                   style={styles.cardImageClean}
                   resizeMode="cover"
                 />
-                {/* Price Badge */}
                 <View style={styles.priceBadge}>
                   <Text style={styles.priceBadgeText}>{item.price}</Text>
                 </View>
               </View>
 
-              {/* Content */}
               <View style={styles.cardContent}>
                 <Text numberOfLines={1} style={styles.cardTitleClean}>
                   {item.name}
@@ -412,15 +354,13 @@ const HomeScreen = ({ navigation }: any) => {
                   {item.subtitle}
                 </Text>
 
-                {/* Book Button */}
                 <TouchableOpacity
                   style={styles.bookButtonClean}
                   onPress={() => {
-                    // Navigate to Services tab with category param to open modal there
                     navigation.navigate('Services', { category: item.category });
                   }}
                   activeOpacity={0.8}>
-                  <Text style={styles.bookButtonText}>Book Now</Text>
+                  <Text style={styles.bookButtonTextClean}>Book Now</Text>
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
@@ -444,7 +384,7 @@ const HomeScreen = ({ navigation }: any) => {
           />
         }>
         {/* Header */}
-        <Header onNotificationPress={handleNotificationPress} />
+        <Header />
 
         {/* Hero Banner */}
         {!isSearchFocused && <HeroImages />}
@@ -468,9 +408,6 @@ const HomeScreen = ({ navigation }: any) => {
         {/* Main Content - Only show when not searching */}
         {!isSearchFocused && (
           <>
-            {/* Popular Packages */}
-            {/* <PopularPackages packages={popularPackages} onPackagePress={handlePackagePress} /> */}
-
             {/* Browse Services Section */}
             <BrowseServices
               title="Browse Services"
@@ -478,16 +415,24 @@ const HomeScreen = ({ navigation }: any) => {
               onItemPress={handleCategoryPress}
             />
 
-            {/* Tabs */}
+            {/* Recent Jobs Section - Now Dynamic */}
             <View style={styles.featuredWrapper}>
-
               <View style={styles.featuredHeaderRow}>
-                <Text style={styles.sectionTitle}>Recent Jobs</Text>
+                <Text style={styles.sectionTitle}>
+                  Recent Jobs {jobCount > 0 ? `(${jobCount})` : ''}
+                </Text>
                 <TouchableOpacity onPress={() => navigation.navigate('Jobs')}>
                   <Text style={styles.viewAllText}>See all</Text>
                 </TouchableOpacity>
               </View>
-              <JobList jobs={recentJobs} onJobPress={handleJobPress} />
+              
+              {/* JobList component - now fetches from API */}
+              <View style={styles.jobListContainer}>
+                <JobList 
+                  onJobPress={handleJobPress}
+                  onResults={handleJobResults}
+                />
+              </View>
             </View>
 
             {/* Updates Section */}
@@ -635,7 +580,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
   },
-  bookButtonText: {
+  bookButtonTextClean: {
     fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
@@ -777,7 +722,13 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
 
-  /* other styles (kept & fixed) */
+  /* Job List Container */
+  jobListContainer: {
+    minHeight: 200,
+    maxHeight: 400,
+  },
+
+  /* other styles */
   searchWithButtonContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -953,8 +904,8 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   gridCard: {
-    width: '40%', // legacy - not used for new featured
-    aspectRatio: 1, // Square cards
+    width: '40%',
+    aspectRatio: 1,
     borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',

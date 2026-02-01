@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Briefcase, MapPin } from 'lucide-react-native';
-
+import { useNavigation } from '@react-navigation/native';
+import { ArrowLeft } from 'lucide-react-native';
 import { styles, colors } from 'components/styles/JobApplyStyles';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { API_BASE_URL } from '../constants';
@@ -15,6 +16,7 @@ type ParamList = {
 };
 
 export default function JobDetailsScreen() {
+  const navigation = useNavigation();
   const route = useRoute<RouteProp<ParamList, 'JobApply'>>();
   const jobId = route.params?.jobId;
   const [loading, setLoading] = useState<boolean>(true);
@@ -154,6 +156,19 @@ export default function JobDetailsScreen() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Heading */}
       <Text style={styles.heading}>{'Job Details'}</Text>
+      <TouchableOpacity
+  onPress={() => navigation.goBack()}
+  style={{
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  }}
+>
+  <ArrowLeft size={20} color={colors.primary} />
+  <Text style={{ marginLeft: 6, color: colors.primary, fontWeight: '600' }}>
+    Back
+  </Text>
+</TouchableOpacity>
 
       {/* Job Summary Card */}
       <View style={styles.summaryCard}>
@@ -253,17 +268,7 @@ export default function JobDetailsScreen() {
           </>
         )}
 
-        {/* HR Details */}
-        {(job.hr_name || job.hr_email || job.hr_contact) && (
-          <>
-            <Text style={styles.sectionTitle}>HR Details</Text>
-            <Text style={styles.sectionText}>
-              {job.hr_name && `HR Name: ${job.hr_name}\n`}
-              {job.hr_email && `Email: ${job.hr_email}\n`}
-              {job.hr_contact && `Contact: ${job.hr_contact}`}
-            </Text>
-          </>
-        )}
+        
       </View>
 
       {/* Apply Button */}
