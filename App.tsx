@@ -67,6 +67,7 @@ export default function App() {
   const HomeStackScreen = () => (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HomeMain" component={HomeScreen} />
+      <Stack.Screen name="JobApply" component={JobApplyScreen} />
     </Stack.Navigator>
   );
 

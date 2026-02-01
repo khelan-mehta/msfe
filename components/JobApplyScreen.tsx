@@ -101,9 +101,16 @@ export default function JobDetailsScreen() {
     if (!jobId || applying) return;
     if (!canApply) {
       toast.showWarning(
-        'Action required',
-        'Please complete your Job seeker profile before applying'
+        'Profile Required',
+        'Please complete your Job seeker profile before applying. Redirecting...'
       );
+      // Navigate to Profile tab -> JobSetup screen
+      const parent = navigation.getParent?.();
+      if (parent) {
+        parent.navigate('Profile', { screen: 'JobSetup' });
+      } else {
+        (navigation as any).navigate('Profile', { screen: 'JobSetup' });
+      }
       return;
     }
 
@@ -273,8 +280,8 @@ export default function JobDetailsScreen() {
 
       {/* Apply Button */}
       <TouchableOpacity
-        style={[styles.applyButton, (!canApply || applied) && { backgroundColor: '#CBD5E1' }]}
-        disabled={!canApply || applying || applied}
+        style={[styles.applyButton, applied && { backgroundColor: '#CBD5E1' }, !applied && !applying && { backgroundColor: '#38BDF8' }]}
+        disabled={applying || applied}
         onPress={handleApply}>
         <Text style={styles.applyText}>
           {applied ? 'Applied' : applying ? 'Applying...' : 'Apply Now'}

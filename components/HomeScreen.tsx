@@ -258,9 +258,7 @@ const HomeScreen = ({ navigation }: any) => {
 
   // Handle job press - navigate to job details
   const handleJobPress = (job: Job) => {
-    console.log('Job pressed:', job.title);
-    // Navigate to job details screen if available
-    // navigation.navigate('JobDetails', { jobId: job.id });
+    navigation.navigate('JobApply', { jobId: job.id });
   };
 
   // Handle job results callback
