@@ -54,8 +54,6 @@ export const JobSubscriptionModal: React.FC<JobSubscriptionModalProps> = ({
   const [selectedPlan, setSelectedPlan] = useState<JobSeekerSubscriptionPlan | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('idle');
 
-  const canClose = !processingPayment && flowState !== 'job_subscription_required';
-
   const handlePlanSelection = async (plan: JobSeekerSubscriptionPlan) => {
     setSelectedPlan(plan);
     await initiatePayment(plan);
@@ -341,16 +339,14 @@ export const JobSubscriptionModal: React.FC<JobSubscriptionModalProps> = ({
               <Text style={sharedStyles.modalTitle}>Job Seeker Plans</Text>
               <Text style={sharedStyles.modalSubtitle}>{getSubtitleText()}</Text>
             </View>
-            {canClose && (
-              <TouchableOpacity
-                style={sharedStyles.modalCloseButton}
-                onPress={() => {
-                  onClose();
-                  setPaymentStatus('idle');
-                }}>
-                <X size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={sharedStyles.modalCloseButton}
+              onPress={() => {
+                onClose();
+                setPaymentStatus('idle');
+              }}>
+              <X size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
           </View>
 
           {renderPaymentStatus()}

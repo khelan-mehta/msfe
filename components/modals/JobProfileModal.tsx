@@ -242,8 +242,6 @@ export const JobProfileModal: React.FC<JobProfileModalProps> = ({
     }
   };
 
-  const canClose = isEditing || flowState !== 'job_profile_required';
-
   const renderStep1 = () => (
     <>
       <Text style={styles.stepTitle}>Basic Information</Text>
@@ -504,13 +502,13 @@ export const JobProfileModal: React.FC<JobProfileModalProps> = ({
       visible={visible}
       animationType="none"
       transparent
-      onRequestClose={() => canClose && onClose()}
+      onRequestClose={onClose}
     >
       <View style={sharedStyles.modalOverlay}>
         <TouchableOpacity
           style={StyleSheet.absoluteFill}
           activeOpacity={1}
-          onPress={() => canClose && onClose()}
+          onPress={onClose}
         />
         <Animated.View
           style={[

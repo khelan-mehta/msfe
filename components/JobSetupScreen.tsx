@@ -1,6 +1,6 @@
 // screens/JobSetupScreen.tsx - Full job seeker setup flow (KYC → Subscription → Job Profile)
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,10 @@ import {
   StatusBar,
   ActivityIndicator,
   Animated,
+  RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, Briefcase, Shield, CreditCard, CheckCircle, Clock, XCircle, ChevronRight } from 'lucide-react-native';
+import { ChevronLeft, Briefcase, Shield, CreditCard, CheckCircle, Clock, XCircle, ChevronRight, RefreshCw } from 'lucide-react-native';
 
 // Try to import Expo Router - will be undefined if not using Expo Router
 let useRouter: any;
@@ -52,8 +53,25 @@ export const JobSetupScreen: React.FC<Props> = ({ navigation, onComplete, onBack
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showJobProfileModal, setShowJobProfileModal] = useState(false);
   const [isEditingJobProfile, setIsEditingJobProfile] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const modalAnim = useRef(new Animated.Value(0)).current;
+
+  // Pull-to-refresh handler
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      if (handleRefresh) {
+        await handleRefresh();
+      } else {
+        await loadUserData();
+      }
+    } catch (error) {
+      console.error('Error refreshing:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [handleRefresh, loadUserData]);
 
   // Navigate to KYC screen
   const navigateToKyc = () => {
@@ -163,7 +181,38 @@ export const JobSetupScreen: React.FC<Props> = ({ navigation, onComplete, onBack
 
       <Header name="Job Profile Setup" leftIcon={ChevronLeft} onLeftPress={() => navigation?.goBack()} />
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing || refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.purple]}
+            tintColor={colors.purple}
+            title="Pull to refresh"
+            titleColor={colors.textSecondary}
+          />
+        }
+      >
+        {/* Refresh Button */}
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={onRefresh}
+          disabled={isRefreshing || refreshing}
+          activeOpacity={0.7}
+        >
+          {(isRefreshing || refreshing) ? (
+            <ActivityIndicator size="small" color={colors.purple} />
+          ) : (
+            <RefreshCw size={18} color={colors.purple} />
+          )}
+          <Text style={styles.refreshButtonText}>
+            {(isRefreshing || refreshing) ? 'Refreshing...' : 'Refresh'}
+          </Text>
+        </TouchableOpacity>
+
         {/* Status Banner */}
         <JobStatusBanner
           flowState={jobFlowState}
@@ -508,6 +557,22 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingHorizontal: 16,
     paddingBottom: 40,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 6,
+    marginBottom: 12,
+  },
+  refreshButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.purple,
   },
   // Status Banner
   statusBanner: {

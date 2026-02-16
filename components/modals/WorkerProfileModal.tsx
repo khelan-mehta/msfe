@@ -252,8 +252,6 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
     }
   };
 
-  const canClose = isEditing || flowState !== 'worker_profile_required';
-
   const selectedCategoryServices = categoriesWithServices.filter((cat) =>
     formData.categories.includes(cat.category)
   );
@@ -263,12 +261,12 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
       visible={visible}
       animationType="none"
       transparent
-      onRequestClose={() => canClose && onClose()}>
+      onRequestClose={onClose}>
       <View style={sharedStyles.modalOverlay}>
         <TouchableOpacity
           style={StyleSheet.absoluteFill}
           activeOpacity={1}
-          onPress={() => canClose && onClose()}
+          onPress={onClose}
         />
         <Animated.View
           style={[

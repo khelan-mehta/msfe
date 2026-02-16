@@ -55,8 +55,6 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('idle');
 
-  const canClose = !processingPayment && flowState !== 'subscription_required';
-
   const handlePlanSelection = async (plan: SubscriptionPlan) => {
     setSelectedPlan(plan);
     await initiatePayment(plan);
@@ -375,17 +373,15 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               <Text style={sharedStyles.modalTitle}>Choose Your Plan</Text>
               <Text style={sharedStyles.modalSubtitle}>{getSubtitleText()}</Text>
             </View>
-            {canClose && (
-              <TouchableOpacity
-                style={sharedStyles.modalCloseButton}
-                onPress={() => {
-                  onClose();
-                  setPaymentStatus('idle');
-                }}
-              >
-                <X size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={sharedStyles.modalCloseButton}
+              onPress={() => {
+                onClose();
+                setPaymentStatus('idle');
+              }}
+            >
+              <X size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
           </View>
 
           {renderPaymentStatus()}

@@ -168,12 +168,10 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     }
   };
 
-  const canClose = status === 'idle' || status === 'success';
-
   return (
-    <Modal visible={visible} animationType="none" transparent onRequestClose={() => onClose()}>
+    <Modal visible={visible} animationType="none" transparent onRequestClose={onClose}>
       <View style={sharedStyles.modalOverlay}>
-        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => canClose && onClose()} />
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
 
         <Animated.View
           style={[
@@ -198,16 +196,12 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               <Text style={sharedStyles.modalSubtitle}>Update your personal information</Text>
             </View>
 
-            {canClose && (
-              <TouchableOpacity
-                style={sharedStyles.modalCloseButton}
-                onPress={() => {
-                  onClose();
-                }}
-              >
-                <X size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={sharedStyles.modalCloseButton}
+              onPress={onClose}
+            >
+              <X size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
           </View>
 
           {/* Loading / Upload / Saving overlays */}

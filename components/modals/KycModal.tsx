@@ -217,8 +217,6 @@ export const KycModal: React.FC<KycModalProps> = ({
     }
   };
 
-  const canClose = flowState !== 'kyc_required';
-
   const renderStep1 = () => (
     <>
       <Text style={styles.stepTitle}>Personal Information</Text>
@@ -431,13 +429,13 @@ export const KycModal: React.FC<KycModalProps> = ({
       visible={visible}
       animationType="none"
       transparent
-      onRequestClose={() => canClose && onClose()}
+      onRequestClose={onClose}
     >
       <View style={sharedStyles.modalOverlay}>
         <TouchableOpacity
           style={StyleSheet.absoluteFill}
           activeOpacity={1}
-          onPress={() => canClose && onClose()}
+          onPress={onClose}
         />
         <Animated.View
           style={[
@@ -463,11 +461,9 @@ export const KycModal: React.FC<KycModalProps> = ({
                 Step {kycStep} of 2 - {kycStep === 1 ? 'Personal Info' : 'Documents'}
               </Text>
             </View>
-            {canClose && (
-              <TouchableOpacity style={sharedStyles.modalCloseButton} onPress={onClose}>
-                <X size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity style={sharedStyles.modalCloseButton} onPress={onClose}>
+              <X size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
           </View>
 
           <ScrollView

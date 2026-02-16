@@ -122,6 +122,7 @@ export const JOB_TYPES = [
 export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'access_token',
   REFRESH_TOKEN: 'refresh_token',
+  REFRESH_TOKEN_TIMESTAMP: 'refresh_token_timestamp',
   USER_DATA: 'user_data',
   WORKER_PROFILE_ID: 'worker_profile_id',
   SUBSCRIPTION_ID: 'subscription_id',
@@ -130,3 +131,6 @@ export const STORAGE_KEYS = {
   APPLIED_JOBS: 'applied_jobs',
   SEARCH_HINT_SHOWN: 'search_hint_shown',
 };
+
+// Refresh token expires after 30 days (1 month)
+export const REFRESH_TOKEN_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;

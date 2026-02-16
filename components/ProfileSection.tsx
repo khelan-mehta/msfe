@@ -197,6 +197,23 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, onLogout, onWorkerS
       <Header name="Profile" rightIcon={Settings} />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* Refresh Button */}
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={handleRefresh}
+          disabled={refreshing}
+          activeOpacity={0.7}
+        >
+          {refreshing ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <RefreshCw size={18} color={colors.primary} />
+          )}
+          <Text style={styles.refreshButtonText}>
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </Text>
+        </TouchableOpacity>
+
         {/* User Info Card */}
         {userProfile && (
           <View style={styles.userCard}>
@@ -669,6 +686,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.error,
     fontWeight: '700',
+  },
+
+  // Refresh Button
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 6,
+    marginBottom: 12,
+  },
+  refreshButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
   },
 
   // App Version

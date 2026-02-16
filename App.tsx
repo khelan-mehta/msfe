@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, StatusBar } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { StyleSheet, StatusBar, Alert, AppState } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -8,6 +8,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { theme } from './theme';
 import { getItem, setItem, removeItem } from './utils/storage';
 import { ToastProvider } from './context/ToastContext';
+import { authEvents } from './utils/authEvents';
+import { STORAGE_KEYS, REFRESH_TOKEN_MAX_AGE_MS } from './constants';
 
 import Loader from './components/Loader';
 import AuthScreen from './components/AuthScreen';
@@ -40,26 +42,87 @@ export default function App() {
     await setItem('userId', id);
   };
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     setUserId(null);
     await removeItem('userId');
     await removeItem('worker_profile');
-    await removeItem('access_token');
-    await removeItem('user_data');
-  };
+    await removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    await removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    await removeItem(STORAGE_KEYS.REFRESH_TOKEN_TIMESTAMP);
+    await removeItem(STORAGE_KEYS.USER_DATA);
+  }, []);
 
+  // Listen for global force-logout events (e.g. refresh token expired, inactive account)
   useEffect(() => {
+    const unsubscribe = authEvents.addLogoutListener((reason) => {
+      handleLogout();
+      if (reason === 'inactive') {
+        Alert.alert(
+          'Account Inactive',
+          'Your account is inactive. Please contact admin.',
+          [{ text: 'OK' }]
+        );
+      } else if (reason === 'refresh_token_expired') {
+        Alert.alert(
+          'Session Expired',
+          'Your session has expired. Please login again.',
+          [{ text: 'OK' }]
+        );
+      }
+    });
+    return unsubscribe;
+  }, [handleLogout]);
+
+  // Check token expiry on app load and when app returns to foreground
+  useEffect(() => {
+    const checkTokenExpiry = async () => {
+      const refreshToken = await getItem(STORAGE_KEYS.REFRESH_TOKEN);
+      if (!refreshToken) return;
+
+      const timestamp = await getItem(STORAGE_KEYS.REFRESH_TOKEN_TIMESTAMP);
+      if (!timestamp) return;
+
+      const elapsed = Date.now() - parseInt(timestamp, 10);
+      if (elapsed > REFRESH_TOKEN_MAX_AGE_MS) {
+        handleLogout();
+        Alert.alert(
+          'Session Expired',
+          'Your session has expired. Please login again.',
+          [{ text: 'OK' }]
+        );
+      }
+    };
+
     const checkAuth = async () => {
       setLoading(true);
-      const accessToken = await getItem('access_token');
+      const accessToken = await getItem(STORAGE_KEYS.ACCESS_TOKEN);
       if (accessToken) {
+        // Check if refresh token is expired before restoring session
+        const timestamp = await getItem(STORAGE_KEYS.REFRESH_TOKEN_TIMESTAMP);
+        if (timestamp) {
+          const elapsed = Date.now() - parseInt(timestamp, 10);
+          if (elapsed > REFRESH_TOKEN_MAX_AGE_MS) {
+            await handleLogout();
+            setLoading(false);
+            return;
+          }
+        }
         const storedUserId = await getItem('userId');
         if (storedUserId) setUserId(storedUserId);
       }
       setLoading(false);
     };
     checkAuth();
-  }, []);
+
+    // Also check when app returns to foreground
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        checkTokenExpiry();
+      }
+    });
+
+    return () => subscription.remove();
+  }, [handleLogout]);
 
   if (loading) return <Loader />;
 

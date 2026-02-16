@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../utils/config';
+import { STORAGE_KEYS } from '../constants';
 
 interface LoginScreenProps {
   navigation: any;
@@ -155,13 +156,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuccess = 
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle inactive account from backend
+        if (
+          data?.code === 'ACCOUNT_INACTIVE' ||
+          data?.message?.toLowerCase().includes('inactive')
+        ) {
+          throw new Error('Your account is inactive. Please contact admin.');
+        }
         throw new Error(data.message || 'Invalid OTP');
       }
 
       const { user, accessToken, refreshToken } = data.data;
 
-      await AsyncStorage.setItem('access_token', accessToken);
-      await AsyncStorage.setItem('refresh_token', refreshToken);
+      await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+      await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+      await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN_TIMESTAMP, String(Date.now()));
       await AsyncStorage.setItem('user_data', JSON.stringify(user));
       await AsyncStorage.setItem('userId', user.id);
 

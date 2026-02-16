@@ -2,7 +2,7 @@
 import { API_BASE_URL } from '../constants';
 
 export const API_CONFIG = {
-  BASE_URL: "http://localhost:8000/api/v1",
+  BASE_URL: API_BASE_URL,
   TIMEOUT: 30000,
 };
 

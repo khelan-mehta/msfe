@@ -202,6 +202,23 @@ export const WorkerSetupScreen: React.FC<Props> = ({ navigation, onComplete, onB
           />
         }
       >
+        {/* Refresh Button */}
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={onRefresh}
+          disabled={isRefreshing || refreshing}
+          activeOpacity={0.7}
+        >
+          {(isRefreshing || refreshing) ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <RefreshCw size={18} color={colors.primary} />
+          )}
+          <Text style={styles.refreshButtonText}>
+            {(isRefreshing || refreshing) ? 'Refreshing...' : 'Refresh'}
+          </Text>
+        </TouchableOpacity>
+
         {/* Status Banner */}
         <StatusBanner
           flowState={flowState}
@@ -399,6 +416,22 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingHorizontal: 16,
     paddingBottom: 40,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 6,
+    marginBottom: 12,
+  },
+  refreshButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
   },
   progressSection: {
     marginTop: 8,

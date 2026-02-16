@@ -164,12 +164,10 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({ visible, modalAnim, 
     }
   };
 
-  const canClose = status === 'idle' || status === 'success';
-
   return (
-    <Modal visible={visible} animationType="none" transparent onRequestClose={() => canClose && onClose()}>
+    <Modal visible={visible} animationType="none" transparent onRequestClose={onClose}>
       <View style={sharedStyles.modalOverlay}>
-        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => canClose && onClose()} />
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
 
         <Animated.View
           style={[
@@ -190,11 +188,9 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({ visible, modalAnim, 
               <Text style={sharedStyles.modalTitle}>Post a Job</Text>
               <Text style={sharedStyles.modalSubtitle}>Fill the job details and submit</Text>
             </View>
-            {canClose && (
-              <TouchableOpacity style={sharedStyles.modalCloseButton} onPress={() => onClose()}>
-                <X size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity style={sharedStyles.modalCloseButton} onPress={onClose}>
+              <X size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
           </View>
 
           <ScrollView style={sharedStyles.modalScroll} contentContainerStyle={{ paddingBottom: 40 }}>
