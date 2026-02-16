@@ -80,7 +80,7 @@ export const JobProfileModal: React.FC<JobProfileModalProps> = ({
         experienceYears: existingProfile.experience_years?.toString() || '',
         education: existingProfile.education || [],
         workExperience: existingProfile.work_experience || [],
-        preferredCategories: existingProfile.preferred_categories || [],
+        preferredCategories: [],
         preferredJobTypes: existingProfile.preferred_job_types || [],
         preferredLocations: existingProfile.preferred_locations?.join(', ') || '',
         expectedSalaryMin: existingProfile.expected_salary_min?.toString() || '',
@@ -418,30 +418,7 @@ export const JobProfileModal: React.FC<JobProfileModalProps> = ({
         </View>
       </View>
 
-      <View style={sharedStyles.inputGroup}>
-        <Text style={sharedStyles.inputLabel}>Preferred Categories</Text>
-        <View style={sharedStyles.chipContainer}>
-          {WORKER_CATEGORIES.slice(0, 6).map((category) => (
-            <TouchableOpacity
-              key={category}
-              style={[
-                sharedStyles.chip,
-                formData.preferredCategories.includes(category) && sharedStyles.chipSelected,
-              ]}
-              onPress={() => toggleCategory(category)}
-            >
-              <Text
-                style={[
-                  sharedStyles.chipText,
-                  formData.preferredCategories.includes(category) && sharedStyles.chipTextSelected,
-                ]}
-              >
-                {category}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+      
 
       <View style={sharedStyles.inputGroup}>
         <Text style={sharedStyles.inputLabel}>
